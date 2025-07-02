@@ -28,7 +28,7 @@ function Login() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('https://yarrak.site/login', {
+      const res = await fetch('https://backend-4-ag1u.onrender.com/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
