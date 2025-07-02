@@ -1,0 +1,56 @@
+[debug] [2025-07-02T17:10:53.926Z] ----------------------------------------------------------------------
+[debug] [2025-07-02T17:10:53.928Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\drade\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js serve
+[debug] [2025-07-02T17:10:53.929Z] CLI Version:   14.9.0
+[debug] [2025-07-02T17:10:53.929Z] Platform:      win32
+[debug] [2025-07-02T17:10:53.929Z] Node Version:  v22.14.0
+[debug] [2025-07-02T17:10:53.929Z] Time:          Wed Jul 02 2025 20:10:53 GMT+0300 (GMT+03:00)
+[debug] [2025-07-02T17:10:53.929Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-02T17:10:54.160Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-02T17:10:54.161Z] > authorizing via signed-in user (yilmazademogullari6@gmail.com)
+[debug] [2025-07-02T17:10:54.161Z] [iam] checking project yumu2-91939 for permissions ["firebase.projects.get"]
+[debug] [2025-07-02T17:10:54.162Z] Checked if tokens are valid: false, expires at: 1751475453721
+[debug] [2025-07-02T17:10:54.162Z] Checked if tokens are valid: false, expires at: 1751475453721
+[debug] [2025-07-02T17:10:54.162Z] > refreshing access token with scopes: []
+[debug] [2025-07-02T17:10:54.163Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-02T17:10:54.163Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-02T17:10:54.444Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-02T17:10:54.444Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-02T17:10:54.458Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939:testIamPermissions [none]
+[debug] [2025-07-02T17:10:54.458Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939:testIamPermissions x-goog-quota-user=projects/yumu2-91939
+[debug] [2025-07-02T17:10:54.458Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-07-02T17:10:55.497Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939:testIamPermissions 200
+[debug] [2025-07-02T17:10:55.497Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2025-07-02T17:10:55.498Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:55.498Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:55.498Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939 [none]
+[debug] [2025-07-02T17:10:55.762Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939 200
+[debug] [2025-07-02T17:10:55.762Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/yumu2-91939 {"projectNumber":"29893614075","projectId":"yumu2-91939","lifecycleState":"ACTIVE","name":"yumu2","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-07-01T17:31:47.064053Z"}
+[info] 
+[info] === Serving from 'C:\Users\drade\my-app'...
+[info] 
+[debug] [2025-07-02T17:10:55.766Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:55.766Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:55.767Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/yumu2-91939/sites 
+[debug] [2025-07-02T17:10:57.084Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/yumu2-91939/sites 200
+[debug] [2025-07-02T17:10:57.084Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/yumu2-91939/sites {"sites":[{"name":"projects/yumu2-91939/sites/yumu2-91939","defaultUrl":"https://yumu2-91939.web.app","appId":"1:29893614075:web:bcbe896180389a8497935e","type":"DEFAULT_SITE"}]}
+[debug] [2025-07-02T17:10:57.084Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:57.084Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:57.084Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/yumu2-91939/webApps/1:29893614075:web:bcbe896180389a8497935e/config [none]
+[debug] [2025-07-02T17:10:57.926Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/yumu2-91939/webApps/1:29893614075:web:bcbe896180389a8497935e/config 200
+[debug] [2025-07-02T17:10:57.927Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/yumu2-91939/webApps/1:29893614075:web:bcbe896180389a8497935e/config {"projectId":"yumu2-91939","appId":"1:29893614075:web:bcbe896180389a8497935e","storageBucket":"yumu2-91939.firebasestorage.app","apiKey":"AIzaSyCfbHP1MsdZ8s90uXsv2l4g3i18mD2zHHI","authDomain":"yumu2-91939.firebaseapp.com","messagingSenderId":"29893614075","measurementId":"G-X1XCW0B1E3"}
+[debug] [2025-07-02T17:10:57.933Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:57.934Z] Checked if tokens are valid: true, expires at: 1751479853444
+[debug] [2025-07-02T17:10:57.934Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/yumu2-91939 [none]
+[debug] [2025-07-02T17:10:58.260Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/yumu2-91939 200
+[debug] [2025-07-02T17:10:58.260Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/yumu2-91939 {"projectId":"yumu2-91939","projectNumber":"29893614075","displayName":"yumu2","name":"projects/yumu2-91939","resources":{"hostingSite":"yumu2-91939"},"state":"ACTIVE","etag":"1_25d8ffe4-1e0c-4ff7-8ef8-617fce9ef7a3"}
+[info] i  hosting[yumu2-91939]: Serving hosting files from: build {"metadata":{"emulator":{"name":"hosting"},"message":"Serving hosting files from: \u001b[1mbuild\u001b[22m"}}
+[info] +  hosting[yumu2-91939]: Local server: http://localhost:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://localhost:5000\u001b[22m\u001b[24m"}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:45 +0000] "GET / HTTP/1.1" 200 644 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:45 +0000] \"GET / HTTP/1.1\" 200 644 \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:45 +0000] "GET /static/css/main.53722e35.css HTTP/1.1" 200 - "http://localhost:5000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:45 +0000] \"GET /static/css/main.53722e35.css HTTP/1.1\" 200 - \"http://localhost:5000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:45 +0000] "GET /static/js/main.6f8fdcea.js HTTP/1.1" 200 - "http://localhost:5000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:45 +0000] \"GET /static/js/main.6f8fdcea.js HTTP/1.1\" 200 - \"http://localhost:5000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:46 +0000] "GET /manifest.json HTTP/1.1" 200 492 "http://localhost:5000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:46 +0000] \"GET /manifest.json HTTP/1.1\" 200 492 \"http://localhost:5000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:46 +0000] "GET /logo192.png HTTP/1.1" 200 5347 "http://localhost:5000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:46 +0000] \"GET /logo192.png HTTP/1.1\" 200 5347 \"http://localhost:5000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:58 +0000] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 187 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:58 +0000] \"GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1\" 404 187 \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:59 +0000] "GET /static/js/main.6f8fdcea.js.map HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:59 +0000] \"GET /static/js/main.6f8fdcea.js.map HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
+[info] i  hosting: ::1 - - [02/Jul/2025:17:12:59 +0000] "GET /static/css/main.53722e35.css.map HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [02/Jul/2025:17:12:59 +0000] \"GET /static/css/main.53722e35.css.map HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36\""}}
