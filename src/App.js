@@ -28,7 +28,7 @@ function Login() {
     setMessage({ text: '', type: '' });
 
     try {
-      const res = await fetch('http://16.16.63.125:5000/login', {
+      const res = await fetch('https://yarrak.site/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
