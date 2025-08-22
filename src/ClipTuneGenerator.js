@@ -3540,15 +3540,17 @@ const processVideoWithClipTune = async () => {
     }, delay);
   });
 
-  // Get instructions from chat or use default
+  // 🚨 FIX: Get instructions with proper fallback priority
   let processingInstructions = videoInstructions || description || 'only add music to places where people do not speak';
   
+  // 🚨 FIX: Ensure we have instructions
   if (!processingInstructions || processingInstructions.trim() === '') {
     processingInstructions = 'only add music to places where people do not speak';
   }
   
-  if (videoInstructions && videoInstructions.trim() !== '') {
-    setDescription(videoInstructions);
+  // 🚨 FIX: Update description state if it was empty
+  if (!description || description.trim() === '') {
+    setDescription(processingInstructions);
   }
 
   try {
@@ -3556,7 +3558,7 @@ const processVideoWithClipTune = async () => {
     setTerminalLogs([]);
     
     logToTerminal('🎬 Starting ClipTune video analysis...', 'info');
-    logToTerminal(`📝 Processing file: ${selectedFile.name}`, 'info');
+    logToTerminal(`📁 Processing file: ${selectedFile.name}`, 'info');
     logToTerminal(`📊 File size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`, 'info');
     logToTerminal(`🎯 Instructions: ${processingInstructions}`, 'info');
 
@@ -4084,6 +4086,7 @@ const handleProceedToNext = () => {
   // 🚨 FIX: Set description immediately from current chat message
   if (chatMessage.trim()) {
     setDescription(chatMessage.trim());
+    setVideoInstructions(chatMessage.trim());
     console.log('📝 Setting description immediately:', chatMessage.trim());
   } else {
     // 🚨 FIX: Collect chat messages for customPrompt
@@ -4094,9 +4097,11 @@ const handleProceedToNext = () => {
     if (userChatMessages.length > 0) {
       const chatOnlyDescription = userChatMessages.join('. ');
       setDescription(chatOnlyDescription);
+      setVideoInstructions(chatOnlyDescription);
       console.log('📝 Chat-only description for customPrompt:', chatOnlyDescription);
     } else {
       setDescription('');
+      setVideoInstructions('');
     }
   }
 
@@ -8836,25 +8841,26 @@ const handleDownloadVideoWithMusic = async (track) => {
       {/* Enhanced Send Button */}
       <button
         className={`chat-button ${(chatMessage.trim() && isFileReady) ? 'send-button-ready' : 'button-disabled'}`}
-        onClick={() => {
-          if (!chatMessage.trim()) {
-            showMessage('Please enter a message first', 'error');
-            return;
-          }
-          
-          if (!isFileReady) {
-            showMessage('Please upload a video file first', 'error');
-            return;
-          }
-          
-          if (isCompleteVideoMode) {
-            setVideoInstructions(chatMessage.trim());
-            setDescription(chatMessage.trim());
-            processVideoWithClipTune();
-          } else {
-            handleProceedToNext();
-          }
-        }}
+    onClick={() => {
+  if (!chatMessage.trim()) {
+    showMessage('Please enter a message first', 'error');
+    return;
+  }
+  
+  if (!isFileReady) {
+    showMessage('Please upload a video file first', 'error');
+    return;
+  }
+  
+  if (isCompleteVideoMode) {
+    // 🚨 FIX: Set both states before processing
+    setVideoInstructions(chatMessage.trim());
+    setDescription(chatMessage.trim());
+    processVideoWithClipTune();
+  } else {
+    handleProceedToNext();
+  }
+}}
         disabled={!chatMessage.trim() || !isFileReady}
         style={{
           position: 'absolute',
@@ -10138,47 +10144,47 @@ Examples:
             Cancel
           </button>
           
-          <button
-            onClick={() => {
-              if (videoInstructions.trim() === '') {
-                showMessage('Please enter processing instructions before continuing', 'error');
-                return;
-              }
-              // Use the instruction input text directly - NO POPUP
-              setDescription(videoInstructions); // Set the description from input
-              processVideoWithClipTune(); // Process directly
-            }}
-            disabled={videoInstructions.trim() === ''}
-            style={{
-              flex: '2',
-              padding: '0.7rem 0.8rem',
-              background: videoInstructions.trim() === ''
-                ? 'rgba(107, 114, 128, 0.5)'
-                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              border: 'none',
-              borderRadius: '6px',
-              color: 'white',
-              fontSize: '0.85rem',
-              fontWeight: '600',
-              cursor: videoInstructions.trim() === '' ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease',
-              opacity: videoInstructions.trim() === '' ? 0.6 : 1
-            }}
-            onMouseEnter={(e) => {
-              if (videoInstructions.trim() !== '') {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (videoInstructions.trim() !== '') {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }
-            }}
-          >
-            🚀 Process
-          </button>
+         <button
+  onClick={() => {
+    if (videoInstructions.trim() === '') {
+      showMessage('Please enter processing instructions before continuing', 'error');
+      return;
+    }
+    // 🚨 FIX: Set both videoInstructions AND description
+    setDescription(videoInstructions.trim());
+    processVideoWithClipTune();
+  }}
+  disabled={videoInstructions.trim() === ''}
+  style={{
+    flex: '2',
+    padding: '0.7rem 0.8rem',
+    background: videoInstructions.trim() === ''
+      ? 'rgba(107, 114, 128, 0.5)'
+      : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    fontSize: '0.85rem',
+    fontWeight: '600',
+    cursor: videoInstructions.trim() === '' ? 'not-allowed' : 'pointer',
+    transition: 'all 0.2s ease',
+    opacity: videoInstructions.trim() === '' ? 0.6 : 1
+  }}
+  onMouseEnter={(e) => {
+    if (videoInstructions.trim() !== '') {
+      e.currentTarget.style.transform = 'translateY(-1px)';
+      e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+    }
+  }}
+  onMouseLeave={(e) => {
+    if (videoInstructions.trim() !== '') {
+      e.currentTarget.style.transform = 'translateY(0)';
+      e.currentTarget.style.boxShadow = 'none';
+    }
+  }}
+>
+  🚀 Process
+</button>
         </div>
       </div>
     )}
