@@ -57,7 +57,7 @@ function Login() {
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
 
-      const response = await fetch('https://backend-4-ag1u.onrender.com/google-login', {
+      const response = await fetch('https://nback-6gqw.onrender.com/google-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: idToken }),
