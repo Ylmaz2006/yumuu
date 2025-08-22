@@ -15,7 +15,7 @@ function VerifyEmail() {
     }
 
     axios
-        .get(`http://localhost:5000/verify-email?token=${token}&email=${email}`)
+        .get(`https://nback-6gqw.onrender.com/verify-email?token=${token}&email=${email}`)
         .then((res) => {
           setMessage(res.data || "Email verified successfully!");
         })

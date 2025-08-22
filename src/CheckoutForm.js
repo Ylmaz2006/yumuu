@@ -15,7 +15,7 @@ const CheckoutForm = ({email, onSuccess}) => {
 
   // Get a payment intent from the backend when the form loads
   useEffect(() => {
-    fetch("http://localhost:5000/create-payment-intent", {
+    fetch("https://nback-6gqw.onrender.com/create-payment-intent", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
     })
@@ -60,7 +60,7 @@ const CheckoutForm = ({email, onSuccess}) => {
 
     // If payment succeeds, call the dedicated '/complete-checkout' endpoint
     if (result.paymentIntent.status === "succeeded") {
-      const response = await fetch("http://localhost:5000/complete-checkout", {
+      const response = await fetch("https://nback-6gqw.onrender.com/complete-checkout", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({

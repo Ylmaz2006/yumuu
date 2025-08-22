@@ -30,12 +30,12 @@ function LibraryPage() {
 
       try {
         const [tracksResponse, videosResponse] = await Promise.all([
-          fetch("http://localhost:3001/api/get-tracks", {
+          fetch("https://nback-6gqw.onrender.com/api/get-tracks", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId }),
           }),
-          fetch("http://localhost:3001/api/get-complete-videos", {
+          fetch("https://nback-6gqw.onrender.com/api/get-complete-videos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId }),
@@ -72,7 +72,7 @@ function LibraryPage() {
     try {
       setIsDeleting(prev => ({ ...prev, [videoId]: true }));
 
-      const response = await fetch("http://localhost:3001/api/delete-complete-video", {
+      const response = await fetch("https://nback-6gqw.onrender.com/api/delete-complete-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, videoId }),

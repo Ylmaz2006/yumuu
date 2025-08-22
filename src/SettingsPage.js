@@ -25,7 +25,7 @@ function SettingsPage() {
 
       try {
         // Fetch user details
-        const userResponse = await fetch("http://localhost:3001/get-user", {
+        const userResponse = await fetch("https://nback-6gqw.onrender.com/get-user", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({email: userIdentifier}),
@@ -43,7 +43,7 @@ function SettingsPage() {
         localStorage.setItem("userId", userData.userId);
 
         // Fetch account status
-        const paymentResponse = await fetch("http://localhost:3001/check-payment-status", {
+        const paymentResponse = await fetch("https://nback-6gqw.onrender.com/check-payment-status", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({email: userIdentifier}),
@@ -79,7 +79,7 @@ function SettingsPage() {
       console.log('🚀 Starting upgrade process for:', userIdentifier);
       
       // Check if user has a credit card on file
-      const cardCheckResponse = await fetch("http://localhost:3001/check-credit-card", {
+      const cardCheckResponse = await fetch("https://nback-6gqw.onrender.com/check-credit-card", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({email: userIdentifier}),
@@ -97,8 +97,8 @@ function SettingsPage() {
       if (cardData.hasCreditCard) {
         // If they have a card, try to upgrade them directly
         console.log('✅ User has payment method, attempting direct upgrade...');
-        
-        const upgradeResponse = await fetch("http://localhost:3001/upgrade-to-premium", {
+
+        const upgradeResponse = await fetch("https://nback-6gqw.onrender.com/upgrade-to-premium", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({email: userIdentifier}),
@@ -144,7 +144,7 @@ function SettingsPage() {
     try {
       console.log('🚫 Canceling premium for:', userIdentifier);
       
-      const cancelResponse = await fetch("http://localhost:3001/cancel-premium", {
+      const cancelResponse = await fetch("https://nback-6gqw.onrender.com/cancel-premium", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({email: userIdentifier}),

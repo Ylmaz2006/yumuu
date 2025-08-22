@@ -31,7 +31,7 @@ const SignupForm = () => {
       setMessage("");
       setStatus("");
       
-      fetch("http://localhost:3001/create-payment-intent", {
+      fetch("https://nback-6gqw.onrender.com/create-payment-intent", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
       })
@@ -112,8 +112,8 @@ const SignupForm = () => {
       // If payment is successful, then create the user account as 'Premium'
       if (result.paymentIntent.status === "succeeded") {
         console.log("Payment succeeded, creating account...");
-        
-        const signupRes = await fetch("http://localhost:3001/signup", {
+
+        const signupRes = await fetch("https://nback-6gqw.onrender.com/signup", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
@@ -157,7 +157,7 @@ const SignupForm = () => {
     setMessage("");
 
     try {
-      const signupRes = await fetch("http://localhost:3001/signup", {
+      const signupRes = await fetch("https://nback-6gqw.onrender.com/signup", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({email, password}), // No payment ID is sent

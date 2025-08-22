@@ -61,7 +61,7 @@ const PaymentMethodForm = ({ onPaymentMethodAdded, onCancel }) => {
 
       // Send to backend
       const email = localStorage.getItem('userEmail');
-      const response = await fetch('http://localhost:3001/api/add-payment-method', {
+      const response = await fetch('https://nback-6gqw.onrender.com/api/add-payment-method', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -274,7 +274,7 @@ const PaymentMethods = () => {
   const fetchPaymentMethods = async () => {
     try {
       const email = localStorage.getItem('userEmail');
-      const response = await fetch('http://localhost:3001/api/get-payment-methods', {
+      const response = await fetch('https://nback-6gqw.onrender.com/api/get-payment-methods', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -304,7 +304,7 @@ const PaymentMethods = () => {
     
     try {
       const email = localStorage.getItem('userEmail');
-      const response = await fetch('http://localhost:3001/api/remove-payment-method', {
+      const response = await fetch('https://nback-6gqw.onrender.com/api/remove-payment-method', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, paymentMethodId }),
@@ -326,7 +326,7 @@ const PaymentMethods = () => {
   const handleSetDefault = async (paymentMethodId) => {
     try {
       const email = localStorage.getItem('userEmail');
-      const response = await fetch('http://localhost:3001/api/set-default-payment-method', {
+      const response = await fetch('https://nback-6gqw.onrender.com/api/set-default-payment-method', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, paymentMethodId }),

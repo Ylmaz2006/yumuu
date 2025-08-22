@@ -1089,7 +1089,7 @@ const getTrackName = (segmentIndex) => {
   return segmentTrackNames[segmentIndex] || `Segment ${segmentIndex + 1} Music`;
 };
   // Base URL for the backend API
-  const API_BASE_URL = 'http://localhost:3001';
+  const API_BASE_URL = 'https://nback-6gqw.onrender.com';
 // Helper function to format seconds as MM:SS or H:MM:SS
 const formatTimeFromSeconds = (totalSeconds) => {
   const hours = Math.floor(totalSeconds / 3600);
@@ -3592,7 +3592,7 @@ const processVideoWithClipTune = async () => {
     logToTerminal(`📊 Trim range: ${trimStart}s - ${trimEnd}s`, 'info');
 
     // Send to backend
-    const response = await fetch('http://localhost:3001/api/cliptune-upload-trimmed', {
+    const response = await fetch('https://nback-6gqw.onrender.com/api/cliptune-upload-trimmed', {
       method: 'POST',
       body: formData
     });
