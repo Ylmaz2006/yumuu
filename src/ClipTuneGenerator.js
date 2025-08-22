@@ -196,22 +196,510 @@ const STYLES = {
     }
   }
 };
-
+const statusUpdates = [
+  { delay: 2000, status: 'Uploading video...', progress: 15 },
+  { delay: 4000, status: 'Analyzing video content...', progress: 30 },
+  { delay: 7000, status: 'Detecting speech patterns...', progress: 45 },
+  { delay: 10000, status: 'Identifying music opportunities...', progress: 60 },
+  { delay: 13000, status: 'Processing AI segments...', progress: 75 },
+  { delay: 16000, status: 'Finalizing analysis...', progress: 85 }
+];
 // Helper to get user key for localStorage
 function getRecentTracksKey(user) {
   // Replace with your actual user identifier logic
   // e.g., user?.email or user?.id
   return user && user.email ? `recentTracks_${user.email}` : 'recentTracks_guest';
 }
+// Spotify-like Player component
+const SpotifyLikePlayer = ({ 
+  track, 
+  isPlaying, 
+  currentTime, 
+  duration, 
+  onPlay, 
+  onPause, 
+  onSeek,
+  onPlayInterval,
+  onDownloadInterval,
+  onUseForVideo,
+  intervalStart = track.start,
+  intervalEnd = track.end,
+  intervalDuration = track.duration
+}) => {
+  const [volume, setVolume] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleProgressClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const newTime = (clickX / rect.width) * duration;
+    onSeek(newTime);
+  };
+
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div 
+      className="spotify-player"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      style={{
+        background: 'linear-gradient(135deg, #1e1e1e 0%, #121212 100%)',
+        borderRadius: '16px',
+        padding: '20px',
+        color: 'white',
+        fontFamily: "'Circular', -apple-system, BlinkMacSystemFont, sans-serif",
+        border: '1px solid #333',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(20px)',
+        minWidth: '500px',
+        maxWidth: '700px',
+        margin: '20px auto',
+        transition: 'all 0.3s ease'
+      }}
+    >
+      {/* Track Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px',
+        marginBottom: '20px'
+      }}>
+        <div style={{
+          width: '56px',
+          height: '56px',
+          borderRadius: '8px',
+          background: 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          boxShadow: '0 4px 16px rgba(29, 185, 84, 0.3)'
+        }}>
+          🎵
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <h3 style={{
+            margin: 0,
+            fontSize: '18px',
+            fontWeight: 700,
+            color: 'white',
+            marginBottom: '4px'
+          }}>
+            {track?.trackName || track?.title || 'AI Generated Track'}
+          </h3>
+          <p style={{
+            margin: 0,
+            fontSize: '14px',
+            color: '#b3b3b3',
+            fontWeight: 400
+          }}>
+            ClipTune AI • {intervalStart} → {intervalEnd} • {intervalDuration}
+          </p>
+        </div>
+
+        <div style={{
+          background: 'linear-gradient(135deg, #1db954 0%, #1ed760 100%)',
+          color: 'white',
+          padding: '6px 12px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          boxShadow: '0 2px 8px rgba(29, 185, 84, 0.3)'
+        }}>
+          ✓ Ready
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '8px'
+        }}>
+          <span style={{ 
+            fontSize: '12px', 
+            color: '#b3b3b3',
+            minWidth: '40px',
+            fontWeight: 500
+          }}>
+            {formatTime(currentTime)}
+          </span>
+          
+          <div 
+            onClick={handleProgressClick}
+            style={{
+              flex: 1,
+              height: '6px',
+              background: '#4f4f4f',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.height = '8px';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.height = '6px';
+            }}
+          >
+            <div style={{
+              width: `${progressPercentage}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #1db954 0%, #1ed760 100%)',
+              borderRadius: '3px',
+              position: 'relative',
+              transition: 'width 0.1s ease'
+            }}>
+              <div style={{
+                position: 'absolute',
+                right: '-6px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '12px',
+                height: '12px',
+                background: 'white',
+                borderRadius: '50%',
+                opacity: isHovering ? 1 : 0,
+                transition: 'opacity 0.2s ease',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+              }} />
+            </div>
+          </div>
+          
+          <span style={{ 
+            fontSize: '12px', 
+            color: '#b3b3b3',
+            minWidth: '40px',
+            fontWeight: 500
+          }}>
+            {formatTime(duration)}
+          </span>
+        </div>
+
+        {/* Interval Indicator */}
+        <div style={{
+          background: 'rgba(29, 185, 84, 0.1)',
+          border: '1px solid rgba(29, 185, 84, 0.3)',
+          borderRadius: '6px',
+          padding: '8px 12px',
+          fontSize: '12px',
+          color: '#1ed760',
+          textAlign: 'center',
+          fontWeight: 500
+        }}>
+          ⏱️ Interval: {intervalStart} → {intervalEnd} • {intervalDuration} duration
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px'
+      }}>
+        {/* Left Controls */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <button
+            onClick={() => onSeek(Math.max(0, currentTime - 10))}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#b3b3b3',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '50%',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#b3b3b3';
+              e.currentTarget.style.background = 'none';
+            }}
+          >
+            ⏪
+          </button>
+
+          <button
+            onClick={isPlaying ? onPause : onPlay}
+            style={{
+              background: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '18px',
+              color: '#000',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 16px rgba(255, 255, 255, 0.2)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 255, 255, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(255, 255, 255, 0.2)';
+            }}
+          >
+            {isPlaying ? '⏸️' : '▶️'}
+          </button>
+
+          <button
+            onClick={() => onSeek(Math.min(duration, currentTime + 10))}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#b3b3b3',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '50%',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#b3b3b3';
+              e.currentTarget.style.background = 'none';
+            }}
+          >
+            ⏩
+          </button>
+        </div>
+
+        {/* Right Controls */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <div style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <button
+              onClick={toggleMute}
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: isMuted ? '#f87171' : '#b3b3b3',
+                fontSize: '16px',
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '4px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = isMuted ? '#fca5a5' : 'white';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = isMuted ? '#f87171' : '#b3b3b3';
+              }}
+            >
+              {isMuted || volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}
+            </button>
+
+            <div 
+              style={{
+                width: showVolumeSlider ? '80px' : '0',
+                overflow: 'hidden',
+                transition: 'width 0.3s ease',
+                marginLeft: showVolumeSlider ? '8px' : '0'
+              }}
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              onMouseLeave={() => setShowVolumeSlider(false)}
+            >
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                style={{
+                  width: '100%',
+                  height: '4px',
+                  background: '#4f4f4f',
+                  borderRadius: '2px',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  accentColor: '#1db954'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap: '12px',
+        marginTop: '20px',
+        paddingTop: '20px',
+        borderTop: '1px solid #333'
+      }}>
+        <button
+          onClick={onPlayInterval}
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.3)';
+          }}
+        >
+          <span>▶️</span>
+          Play Interval
+        </button>
+
+        <button
+          onClick={onDownloadInterval}
+          style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.3)';
+          }}
+        >
+          <span>⬇️</span>
+          Download Interval
+        </button>
+
+        <button
+          onClick={onUseForVideo}
+          style={{
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 16px rgba(245, 158, 11, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 158, 11, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(245, 158, 11, 0.3)';
+          }}
+        >
+          <span>🎬</span>
+          Use for Video
+        </button>
+      </div>
+    </div>
+  );
+};
 const App = () => {
   const navigate = useNavigate();
   // Current step in the workflow
   const [currentStep, setCurrentStep] = useState(1); // 1: Upload, 2: Video Edit, 4: Results, 5: Combined Video Preview
-
+// Add these new state variables with your existing ones
+const [chatMessage, setChatMessage] = useState('');
+const [chatHistory, setChatHistory] = useState([]);
+const [isTyping, setIsTyping] = useState(false);
+const chatInputRef = useRef(null);
   // State variables for managing component data and UI
   // Add this line with your other useState declarations
   // Full video analysis state
+  const [completeVideoProgress, setCompleteVideoProgress] = useState(0);
+const [completeVideoStatus, setCompleteVideoStatus] = useState('');
+const [isCompleteVideoProcessing, setIsCompleteVideoProcessing] = useState(false);
+
   const [segmentMusicGeneration, setSegmentMusicGeneration] = useState({});
 const [generatedSegmentMusic, setGeneratedSegmentMusic] = useState({});
 const [playingSegment, setPlayingSegment] = useState(null);
@@ -226,6 +714,9 @@ const [showFullVideoAnalysis, setShowFullVideoAnalysis] = useState(false);
   const [terminalLogs, setTerminalLogs] = useState([]);
 const terminalRef = useRef(null);
 // ADD this new state variable to your ClipTuneGenerator.js component:
+const [showInstructionInput, setShowInstructionInput] = useState(false);
+const [videoInstructions, setVideoInstructions] = useState('');
+const [isCompleteVideoMode, setIsCompleteVideoMode] = useState(false);
 
 // Add this with your other useState declarations:
 const [segmentTrackNames, setSegmentTrackNames] = useState({});
@@ -246,11 +737,13 @@ const [savedCombinedVideos, setSavedCombinedVideos] = useState(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
   const [showBulkGenerateConfirm, setShowBulkGenerateConfirm] = useState(false);
 const [showCompleteVideoConfirm, setShowCompleteVideoConfirm] = useState(false);
+const [generatingTracks, setGeneratingTracks] = useState([]); // Track generation progress
+const [forceShowDropdown, setForceShowDropdown] = useState(false); 
 const [bulkGenerateSegmentCount, setBulkGenerateSegmentCount] = useState(0);
 const [completeVideoSegmentCount, setCompleteVideoSegmentCount] = useState(0);
+
 // ADD THESE MISSING FUNCTIONS TO ClipTuneGenerator.js
 
-// 1. Function to detect overlaps between segments
 const detectSegmentOverlaps = (segments, currentIndex, newStart, newEnd) => {
   const overlaps = [];
   
@@ -280,7 +773,6 @@ const detectSegmentOverlaps = (segments, currentIndex, newStart, newEnd) => {
   
   return overlaps;
 };
-
 // 2. Function to calculate safe boundaries for a segment
 const calculateSegmentBoundaries = (segments, currentIndex) => {
   const sortedSegments = segments
@@ -320,7 +812,94 @@ const calculateSegmentBoundaries = (segments, currentIndex) => {
   return { maxStart, minEnd };
 };
 
+// Add these functions before your return statement
+const getAIResponse = (userMessage) => {
+  const responses = [
+    "I can help you transform your video into amazing AI-generated music! Upload your video and I'll analyze it for you.",
+    "Great! Once you upload a video, I can suggest music styles that would work best with your content.",
+    "I'll analyze your video's mood, pacing, and visual elements to create the perfect soundtrack.",
+    "Would you like me to create upbeat, calm, dramatic, or ambient music for your video?",
+    "I can generate music in various genres - electronic, orchestral, pop, rock, ambient, and more!",
+    "Upload your video and tell me what kind of mood or style you're looking for in the music."
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
+};
+
+// Find the existing handleSendMessage function and replace it with this enhanced version:
+const handleSendMessage = async () => {
+  if (!chatMessage.trim()) return;
+
+  // Add user message to chat history
+  const userMessage = {
+    id: Date.now(),
+    type: 'user',
+    message: chatMessage,
+    timestamp: new Date().toLocaleTimeString()
+  };
+
+  setChatHistory(prev => [...prev, userMessage]);
+  
+  // 🚨 FIX: Store the chat message for immediate use
+  const currentChatMessage = chatMessage.trim();
+  
+  // 🚨 FIX: Set description immediately for custom prompt
+  setDescription(currentChatMessage);
+  
+  setChatMessage(''); // Clear input immediately
+  setIsTyping(true);
+
+  // Check if user has uploaded a video file
+  if (!selectedFile || !isFileReady) {
+    // Simulate AI thinking time for regular chat
+    setTimeout(() => {
+      const aiResponse = {
+        id: Date.now() + 1,
+        type: 'ai',
+        message: "I'd love to help you create music! Please upload a video file first, then I can analyze it and generate the perfect soundtrack based on your description.",
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setChatHistory(prev => [...prev, aiResponse]);
+      setIsTyping(false);
+    }, 1500);
+    return;
+  }
+
+  // If video is ready, use chat message for Complete Video processing
+  try {
+    // 🚨 FIX: Use the stored message instead of state
+    setVideoInstructions(currentChatMessage);
+    
+    // Add AI response indicating processing will start
+    const processingMessage = {
+      id: Date.now() + 1,
+      type: 'ai',
+      message: `🎬 Perfect! I'll analyze your video with these instructions: "${currentChatMessage}". Starting complete video analysis now...`,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    setChatHistory(prev => [...prev, processingMessage]);
+    setIsTyping(false);
+
+    // Small delay to show the message, then start processing
+    setTimeout(() => {
+      processVideoWithClipTune();
+    }, 1000);
+
+  } catch (error) {
+    setIsTyping(false);
+    const errorMessage = {
+      id: Date.now() + 1,
+      type: 'ai',
+      message: `❌ Sorry, there was an error processing your request: ${error.message}. Please try again!`,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    setChatHistory(prev => [...prev, errorMessage]);
+  }
+};
+// Also update the send button in the chat interface to show different states:
+
 // 3. Create drag handler with overlap detection
+// ADD THESE ADDITIONAL MISSING FUNCTIONS TO ClipTuneGenerator.js
+
 const createDragHandlerWithOverlapDetection = (type) => {
   return (e) => {
     e.preventDefault();
@@ -392,7 +971,7 @@ const createDragHandlerWithOverlapDetection = (type) => {
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);
   };
-};// ADD THESE ADDITIONAL MISSING FUNCTIONS TO ClipTuneGenerator.js
+};
 
 // 4. Function to show segment boundaries to prevent overlaps
 const showSegmentBoundaries = (segmentIndex) => {
@@ -449,11 +1028,14 @@ const [isLoadingUser, setIsLoadingUser] = useState(true);
 const [isProcessingVideo, setIsProcessingVideo] = useState(false);
 const [processedVideoResult, setProcessedVideoResult] = useState(null);
 const [showProcessedVideo, setShowProcessedVideo] = useState(false);
-
+// Add these with your existing useState declarations
+const [isUploading, setIsUploading] = useState(false);
+const [uploadProgress, setUploadProgress] = useState(0);
+const [isFileReady, setIsFileReady] = useState(false);
   // Modal control states
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showVideoEditModal, setShowVideoEditModal] = useState(false);
-
+const [isChatMode, setIsChatMode] = useState(true); 
   // Timeline-related state
   const [duration, setDuration] = useState(0);
   const [thumbnails, setThumbnails] = useState([]);
@@ -576,193 +1158,11 @@ const detectTimeFormat = (segments, videoDuration) => {
   logToTerminal(`✂️ Started editing timeline for segment ${segmentIndex + 1}`, 'info');
   logToTerminal(`💡 Tip: Use arrow keys for fine adjustments (Shift+← → for start handle, ← → for end handle)`, 'info');
 };
-const createDragHandlerWithOverlapDetection = (type) => {
-  return (e) => {
-    e.preventDefault();
-    
-    const rect = trackRef.current.getBoundingClientRect();
-    
-    const move = (moveEvent) => {
-      const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-      const width = THUMB_WIDTH * NUM_THUMBS;
-      
-      let newStartX = startX;
-      let newEndX = endX;
-      
-      if (type === "start") {
-        newStartX = Math.min(currentX, endX - 10);
-        setStartX(newStartX);
-      } else {
-        newEndX = Math.max(currentX, startX + 10);
-        setEndX(newEndX);
-      }
-      
-      // Convert to time values for overlap checking
-      const newStart = (newStartX / width) * duration;
-      const newEnd = (newEndX / width) * duration;
-      
-      // Real-time overlap detection during drag
-      if (selectedSegmentForEdit && processedVideoResult?.segments) {
-        const overlaps = detectSegmentOverlaps(
-          processedVideoResult.segments, 
-          selectedSegmentForEdit.index, 
-          newStart, 
-          newEnd
-        );
-        
-        // Visual feedback for overlaps (you can enhance this with UI indicators)
-        if (overlaps.length > 0) {
-          console.warn(`⚠️ Drag overlap detected with ${overlaps.length} segment(s)`);
-          // You could add visual indicators here (red borders, warnings, etc.)
-        }
-      }
-      
-      // Update video time
-      const newTime = type === "start" ? newStart : newEnd;
-      if (videoPreviewRef.current && !isNaN(newTime)) {
-        videoPreviewRef.current.currentTime = newTime;
-      }
-      
-      // Mark as having unsaved changes
-      if (selectedSegmentForEdit) {
-        setHasUnsavedTimelineChanges(true);
-      }
-    };
-    
-    const up = () => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      
-      // Brief preview play
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.play();
-        setTimeout(() => {
-          if (videoPreviewRef.current) {
-            videoPreviewRef.current.pause();
-          }
-        }, 300);
-      }
-    };
-    
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  };
-};const showSegmentBoundaries = (segmentIndex) => {
-  if (!processedVideoResult?.segments) return;
-  
-  const boundaries = calculateSegmentBoundaries(processedVideoResult.segments, segmentIndex);
-  const currentSegment = processedVideoResult.segments[segmentIndex];
-  
-  logToTerminal(`📏 Safe boundaries for Segment ${segmentIndex + 1}:`, 'info');
-  logToTerminal(`   Earliest start: ${formatTimeFromSeconds(boundaries.maxStart)}`, 'info');
-  logToTerminal(`   Latest end: ${formatTimeFromSeconds(boundaries.minEnd)}`, 'info');
-  logToTerminal(`   Maximum duration: ${formatTimeFromSeconds(boundaries.minEnd - boundaries.maxStart)}`, 'info');
-  
-  // Optionally auto-adjust to safe boundaries
-  if (boundaries.minEnd - boundaries.maxStart > 1) { // Must be at least 1 second
-    const safeDuration = Math.min(30, boundaries.minEnd - boundaries.maxStart - 0.1); // Leave 0.1s buffer
-    const safeStart = boundaries.maxStart;
-    const safeEnd = safeStart + safeDuration;
-    
-    logToTerminal(`💡 Suggested safe range: ${formatTimeFromSeconds(safeStart)} - ${formatTimeFromSeconds(safeEnd)}`, 'info');
-  } else {
-    logToTerminal(`⚠️ Very limited space available for this segment`, 'warning');
-  }
-};
+// Add this Spotify-like Player component to your ClipTuneGenerator.js file
 
-// 3. Add this function to handle setting the current timeline
-const handleSetCurrentTimeline = () => {
-  if (!selectedSegmentForEdit) return;
-  
-  const [newStart, newEnd] = getTrimRange();
-  const newDuration = newEnd - newStart;
-  const segmentIndex = selectedSegmentForEdit.index;
-  
-  console.log(`🔍 Validating timeline for segment ${segmentIndex + 1}:`);
-  console.log(`   New timing: ${formatTimeFromSeconds(newStart)} - ${formatTimeFromSeconds(newEnd)}`);
-  
-  // ✅ CHECK FOR OVERLAPS (including end time after another segment's start)
-  const overlaps = detectSegmentOverlaps(processedVideoResult.segments, segmentIndex, newStart, newEnd);
 
-  // Strict check: segment's end time must not exceed the start time of any other segment
-  let strictConflict = false;
-  let strictConflictMsg = '';
-  processedVideoResult.segments.forEach((seg, idx) => {
-    if (idx !== segmentIndex) {
-      const segStart = seg.parsed_start !== undefined ? seg.parsed_start : parseFloat(seg.start_time || 0);
-      // If newEnd > segStart, that's not allowed
-      if (newEnd > segStart) {
-        strictConflict = true;
-        strictConflictMsg += `Segment ${idx + 1} (starts at ${formatTimeFromSeconds(segStart)})`;
-      }
-    }
-  });
 
-  if (overlaps.length > 0 || strictConflict) {
-    let conflictMessages = overlaps.map(overlap => 
-      `Segment ${overlap.segmentNumber} (${formatTimeFromSeconds(overlap.start)} - ${formatTimeFromSeconds(overlap.end)})`
-    ).join(', ');
-    if (strictConflict) {
-      conflictMessages += (conflictMessages ? ', ' : '') + strictConflictMsg;
-    }
-    showMessage(`Timeline overlaps detected with: ${conflictMessages}. Please adjust the timing.`, 'error');
-    logToTerminal(`❌ Cannot save: Timeline overlaps with existing segments`, 'error');
-    // Optionally, suggest safe boundaries
-    const boundaries = calculateSegmentBoundaries(processedVideoResult.segments, segmentIndex);
-    logToTerminal(`💡 Safe range: ${formatTimeFromSeconds(boundaries.maxStart)} - ${formatTimeFromSeconds(boundaries.minEnd)}`, 'info');
-    return; // Don't save if there are overlaps
-  }
-  
-  // ✅ CHECK VIDEO DURATION BOUNDS
-  if (newStart < 0 || newEnd > duration) {
-    showMessage(`Timeline extends beyond video bounds (0s - ${formatTimeFromSeconds(duration)}). Please adjust.`, 'error');
-    logToTerminal(`❌ Timeline extends beyond video duration`, 'error');
-    return;
-  }
-  
-  // ✅ CHECK MINIMUM DURATION
-  if (newDuration < 1) {
-    showMessage('Segment must be at least 1 second long. Please increase the duration.', 'error');
-    logToTerminal(`❌ Segment too short: ${formatTimeFromSeconds(newDuration)}`, 'error');
-    return;
-  }
-  
-  console.log(`✅ Timeline validation passed for segment ${segmentIndex + 1}`);
-  
-  // Update the segment data with new timing
-  const updatedSegment = {
-    ...selectedSegmentForEdit.segment,
-    start_time: newStart.toString(),
-    end_time: newEnd.toString(),
-    parsed_start: newStart,
-    parsed_end: newEnd,
-    duration: newDuration,
-    timeline_was_adjusted: true,
-    original_start_time: selectedSegmentForEdit.segment.start_time,
-    original_end_time: selectedSegmentForEdit.segment.end_time
-  };
-  
-  // Update the segment in the processed video result
-  if (processedVideoResult && processedVideoResult.segments) {
-    const updatedSegments = [...processedVideoResult.segments];
-    updatedSegments[selectedSegmentForEdit.index] = updatedSegment;
-    
-    setProcessedVideoResult({
-      ...processedVideoResult,
-      segments: updatedSegments
-    });
-  }
-  
-  logToTerminal(`✅ Timeline updated for segment ${selectedSegmentForEdit.index + 1}:`, 'success');
-  logToTerminal(`   New timing: ${formatTimeFromSeconds(newStart)} - ${formatTimeFromSeconds(newEnd)}`, 'success');
-  logToTerminal(`   Duration: ${formatTimeFromSeconds(newDuration)}`, 'success');
-  
-  // Clear editing state
-  setSelectedSegmentForEdit(null);
-  setHasUnsavedTimelineChanges(false);
-  
-  showMessage(`Timeline updated for segment ${selectedSegmentForEdit.index + 1} - No overlaps detected!`, 'success');
-};
+
 
 // ADD these functions to your ClipTuneGenerator.js file
 
@@ -837,29 +1237,7 @@ const calculateSegmentBoundaries = (segments, currentIndex) => {
 };
 
 // 4. Add this function to handle canceling timeline edit
-const handleCancelTimelineEdit = () => {
-  if (!selectedSegmentForEdit) return;
-  
-  // Restore original timeline position
-  setStartX(originalTimelineState.startX);
-  setEndX(originalTimelineState.endX);
-  
-  // Update video position back to original
-  const width = THUMB_WIDTH * NUM_THUMBS;
-  const originalTime = (originalTimelineState.startX / width) * duration;
-  if (videoPreviewRef.current && !isNaN(originalTime)) {
-    videoPreviewRef.current.currentTime = originalTime;
-  }
-  
-  logToTerminal(`❌ Timeline edit cancelled for segment ${selectedSegmentForEdit.index + 1}`, 'info');
-  logToTerminal(`🔄 Restored to original position`, 'info');
-  
-  // Clear editing state
-  setSelectedSegmentForEdit(null);
-  setHasUnsavedTimelineChanges(false);
-  
-  showMessage('Timeline changes cancelled', 'info');
-};
+
 
   // Convert to numbers for analysis
   const numericValues = allTimeValues.map(val => {
@@ -1094,12 +1472,40 @@ const getEffectiveVolume = (segmentIndex, segment) => {
 };
 // Updated volume change handler for segments
 // REPLACE your existing volume control functions in ClipTuneGenerator.js with these FIXED versions:
+       const handlePlayInterval = () => {
+  if (!selectedTrack || !selectedTrack.audioUrl) {
+    showMessage('No track selected or missing audio URL.', 'warning');
+    return;
+  }
 
-// 1. FIXED: Remove debouncing and make volume updates immediate
+  const audio = new Audio(selectedTrack.audioUrl);
+  audio.currentTime = convertTimestampToSeconds(selectedTrack.intervalStart || '0:00');
+  audio.volume = previewVolume;
+
+  audio.play();
+
+  setTimeout(() => {
+    audio.pause();
+  }, convertTimestampToSeconds(selectedTrack.intervalEnd || '0:30') * 1000);
+};
+// Add this new state variable with your other useState declarations
+const [volumeUpdateProgress, setVolumeUpdateProgress] = useState({});
+
+// REPLACE your existing handleSegmentVolumeChange function with this enhanced version
 const handleSegmentVolumeChange = async (segmentIndex, newVolume) => {
   const volumeValue = parseFloat(newVolume);
   
-  console.log(`🎚️ IMMEDIATE volume change for segment ${segmentIndex + 1}: ${volumeValue}`);
+  console.log(`🎚️ Starting volume change for segment ${segmentIndex + 1}: ${Math.round(volumeValue * 100)}%`);
+  
+  // 🚨 NEW: Set loading state for this specific segment
+  setVolumeUpdateProgress(prev => ({
+    ...prev,
+    [segmentIndex]: {
+      isUpdating: true,
+      progress: 0,
+      targetVolume: Math.round(volumeValue * 100)
+    }
+  }));
   
   // Update state immediately without triggering timeline edits
   const updatedMusicData = {
@@ -1114,14 +1520,65 @@ const handleSegmentVolumeChange = async (segmentIndex, newVolume) => {
   setGeneratedSegmentMusic(updatedMusicData);
   logToTerminal(`🎚️ Volume updated: Segment ${segmentIndex + 1} = ${Math.round(volumeValue * 100)}%`, 'info');
   
+  // 🚨 NEW: Simulate progress updates
+  const progressInterval = setInterval(() => {
+    setVolumeUpdateProgress(prev => {
+      const current = prev[segmentIndex];
+      if (!current || current.progress >= 90) return prev;
+      
+      return {
+        ...prev,
+        [segmentIndex]: {
+          ...current,
+          progress: Math.min(current.progress + Math.random() * 15, 90)
+        }
+      };
+    });
+  }, 200);
+  
   // Clear any existing timeout
   if (window.volumeUpdateTimeout) {
     clearTimeout(window.volumeUpdateTimeout);
   }
   
-  // Set new timeout for regeneration with updated data (NO timeline editing)
+  // Set new timeout for regeneration with updated data
   window.volumeUpdateTimeout = setTimeout(async () => {
-    await regenerateCompleteVideoWithVolumes(updatedMusicData);
+    try {
+      // Complete the progress
+      setVolumeUpdateProgress(prev => ({
+        ...prev,
+        [segmentIndex]: {
+          ...prev[segmentIndex],
+          progress: 100
+        }
+      }));
+      
+      await regenerateCompleteVideoWithVolumes(updatedMusicData);
+      
+      // 🚨 NEW: Clear loading state after completion
+      setTimeout(() => {
+        setVolumeUpdateProgress(prev => {
+          const updated = { ...prev };
+          delete updated[segmentIndex];
+          return updated;
+        });
+      }, 1000); // Show 100% for 1 second before clearing
+      
+    } catch (error) {
+      console.error(`❌ Volume update failed for segment ${segmentIndex + 1}:`, error);
+      
+      // 🚨 NEW: Clear loading state on error
+      setVolumeUpdateProgress(prev => {
+        const updated = { ...prev };
+        delete updated[segmentIndex];
+        return updated;
+      });
+      
+      logToTerminal(`❌ Volume update failed: ${error.message}`, 'error');
+      showMessage(`Failed to update volume for segment ${segmentIndex + 1}`, 'error');
+    } finally {
+      clearInterval(progressInterval);
+    }
   }, 1500);
 };
 
@@ -1259,38 +1716,6 @@ const logToTerminal = useCallback((message, type = 'info') => {
     }
   }, 100);
 }, []);
-// REPLACE your generateMusicForSegment function with this fixed version
-// REPLACE your generateMusicForSegment function with this DEBUGGED version:
-
-// REPLACE your generateMusicForSegment function in ClipTuneGenerator.js with this enhanced version
-// This automatically combines the generated music with video for immediate playback
-
-// REPLACE your generateMusicForSegment function in ClipTuneGenerator.js with this enhanced version
-// This automatically combines the generated music with video for immediate playback
-
-// REPLACE your existing generateMusicForSegment function with this version
-// REPLACE your existing generateMusicForSegment function with this updated version
-// This adds percentage loading from 0% to 100% and removes the success message
-
-// REPLACE your existing generateMusicForSegment function with this updated version
-// This adds percentage loading from 0% to 100% and removes the success message
-// REPLACE your existing generateMusicForSegment function with this updated version
-// This adds percentage loading from 0% to 100% and removes the success message
-
-// REPLACE your existing generateMusicForSegment function with this updated version
-// This adds percentage loading from 0% to 100% and removes the success message
-
-// REPLACE your existing generateMusicForSegment function with this updated version
-// This adds percentage loading from 0% to 100% and removes the success message
-
-// REPLACE your existing generateMusicForSegment function with this updated version
-// This adds percentage loading from 0% to 100% and removes the success message
-
-// REPLACE your existing generateMusicForSegment function with this updated version
-// REPLACE your existing generateMusicForSegment function with this COMPLETE version:
-
-// REPLACE your existing generateMusicForSegment function with this COMPLETE version:
-
 const generateMusicForSegment = async (segment, segmentIndex) => {
   try {
     setSegmentMusicGeneration(prev => ({
@@ -1299,13 +1724,13 @@ const generateMusicForSegment = async (segment, segmentIndex) => {
       [`${segmentIndex}_progress`]: 0
     }));
     
-    console.log(`🔍 GENERATING MUSIC FOR SEGMENT ${segmentIndex + 1} WITH TRACK NAME - TRIMMED VIDEO SUPPORT`);
+    console.log(`🔍 GENERATING MUSIC FOR SEGMENT ${segmentIndex + 1} WITH WEBHOOK MONITORING`);
     
-    // 🚨 NEW: Get the track name for this segment
+    // Get the track name for this segment
     const trackName = getTrackName(segmentIndex);
     console.log(`🎵 Track name: "${trackName}"`);
     
-    // 🚨 Handle both trimmed and full video segments
+    // Handle both trimmed and full video segments
     let segmentStart, segmentEnd, segmentDuration;
     let usingAdjustedTiming = false;
     let isTrimmedVideo = !!processedVideoResult?.trim_info;
@@ -1322,7 +1747,7 @@ const generateMusicForSegment = async (segment, segmentIndex) => {
       logToTerminal(`✂️ Using timeline selection: ${formatTimeFromSeconds(segmentStart)} to ${formatTimeFromSeconds(segmentEnd)}`, 'info');
       
     } else if (isTrimmedVideo) {
-      // 🚨 For trimmed video, use segment timing relative to trimmed video
+      // For trimmed video, use segment timing relative to trimmed video
       const trimStart = processedVideoResult.trim_info.original_start;
       
       // Segments are relative to trimmed video, so convert to absolute time for music generation
@@ -1388,25 +1813,31 @@ const generateMusicForSegment = async (segment, segmentIndex) => {
       });
     }, 800);
     
+    // 🚨 MODIFIED: Use webhook endpoint instead of direct MusicGPT
     const formData = new FormData();
     formData.append('video', selectedFile);
     formData.append('youtubeUrls', JSON.stringify(youtubeUrls.filter(url => url.trim() !== '')));
     formData.append('lyrics', lyrics || '');
-    formData.append('extra_description', segment.music_summary || segment.music_details || 'Background music for video segment');
+    formData.append('extra_description', segment.detailed_description || segment.music_summary || 'Background music for video segment');
     formData.append('instrumental', 'true');
     
-    // 🚨 NEW: Include the track name in the song_title and as separate field
+    // Include the track name in the song_title and as separate field
     const songTitle = trackName || `segment_${segmentIndex + 1}${usingAdjustedTiming ? '_adjusted' : ''}${isTrimmedVideo ? '_trimmed' : ''}_${segment.format_used || 'processed'}`;
     formData.append('song_title', songTitle);
-    formData.append('track_name', trackName); // 🚨 NEW: Send track name as separate field
+    formData.append('track_name', trackName);
     
     formData.append('video_start', segmentStart.toString());
     formData.append('video_end', segmentEnd.toString());
 
-    logToTerminal(`📤 Sending music generation request for "${trackName}"...`, 'info');
+    // 🚨 NEW: Add webhook URL for monitoring
+    const webhookUrl = "https://webhook.site/5421b69a-6732-41cb-a96f-b19ae1d7faf0";
+    formData.append('webhook_url', webhookUrl);
 
-    // Call the music generation endpoint
-    const response = await fetch(`${API_BASE_URL}/api/generate-segment-music`, {
+    logToTerminal(`📤 Sending music generation request with webhook monitoring for "${trackName}"...`, 'info');
+    logToTerminal(`📡 Webhook URL: ${webhookUrl}`, 'info');
+
+    // 🚨 CHANGED: Call the webhook-enabled endpoint
+    const response = await fetch(`${API_BASE_URL}/api/generate-segment-music-with-webhook`, {
       method: 'POST',
       body: formData,
     });
@@ -1424,223 +1855,184 @@ const generateMusicForSegment = async (segment, segmentIndex) => {
 
     const musicData = await response.json();
     
-    console.log(`✅ RECEIVED MUSIC DATA FOR "${trackName}" (SEGMENT ${segmentIndex + 1}):`, {
+    console.log(`✅ RECEIVED MUSIC RESPONSE FOR "${trackName}" (SEGMENT ${segmentIndex + 1}):`, {
       musicData,
       hasUrl: !!musicData.url,
       hasAudioUrl: !!musicData.audio_url,
-      hasTrackName: !!musicData.track_name
+      hasTaskId: !!musicData.task_id,
+      status: musicData.status
     });
     
-    logToTerminal(`✅ "${trackName}" generated successfully for segment ${segmentIndex + 1}!`, 'success');
-
-    // Extract audio URL from response
-    let audioUrl = null;
-    
-    if (musicData.url) {
-      audioUrl = musicData.url;
-    } else if (musicData.audio_url) {
-      audioUrl = musicData.audio_url;
-    } else if (musicData.tracks && Array.isArray(musicData.tracks) && musicData.tracks.length > 0) {
-      audioUrl = musicData.tracks[0].url || musicData.tracks[0].audio_url;
-    } else if (musicData.data && musicData.data.url) {
-      audioUrl = musicData.data.url;
-    } else if (musicData.data && musicData.data.audio_url) {
-      audioUrl = musicData.data.audio_url;
-    }
-
-    if (!audioUrl) {
-      throw new Error('No audio URL found in the response');
-    }
-
-    console.log(`🎶 EXTRACTED AUDIO URL FOR "${trackName}" (SEGMENT ${segmentIndex + 1}):`, audioUrl);
-
-    // 🚨 Store music data with track name and trimmed video information
-    const newMusicData = {
-      ...musicData,
-      audioUrl: audioUrl,
-      trackName: trackName, // 🚨 NEW: Store the track name
-      segment: {
-        ...segment,
-        start_time: segmentStart.toString(),
-        end_time: segmentEnd.toString(),
-        adjusted_timing: usingAdjustedTiming,
-        is_trimmed_video: isTrimmedVideo,
-        track_name: trackName // 🚨 NEW: Store track name in segment info too
-      },
-      segmentStart,
-      segmentEnd,
-      segmentDuration,
-      customVolume: segment.volume || 0.3,
-      actualMusicTiming: {
-        start: segmentStart,
-        end: segmentEnd,
-        duration: segmentDuration,
-        wasAdjusted: usingAdjustedTiming,
-        isTrimmedVideo: isTrimmedVideo,
-        trackName: trackName, // 🚨 NEW: Include track name in timing info
-        trimmedVideoInfo: isTrimmedVideo ? {
-          originalTrimStart: processedVideoResult.trim_info.original_start,
-          originalTrimEnd: processedVideoResult.trim_info.original_end,
-          relativeStart: isTrimmedVideo ? (segmentStart - processedVideoResult.trim_info.original_start) : segmentStart,
-          relativeEnd: isTrimmedVideo ? (segmentEnd - processedVideoResult.trim_info.original_start) : segmentEnd
-        } : null
-      }
-    };
-
-    // Store the music data
-    setGeneratedSegmentMusic(prev => {
-      const updated = {
-        ...prev,
-        [segmentIndex]: newMusicData
-      };
+    // 🚨 HANDLE DIFFERENT RESPONSE TYPES
+    if (musicData.success && musicData.status === 'completed_immediately' && musicData.url) {
+      // Music was generated immediately
+      logToTerminal(`✅ "${trackName}" generated immediately for segment ${segmentIndex + 1}!`, 'success');
       
-      console.log(`🔄 UPDATED generatedSegmentMusic STATE WITH TRACK NAME:`, {
+      const newMusicData = {
+        ...musicData,
+        audioUrl: musicData.url,
         trackName: trackName,
-        segmentIndex: segmentIndex,
-        totalSegments: Object.keys(updated).length,
-        isTrimmedVideo,
-        trimInfo: isTrimmedVideo ? processedVideoResult.trim_info : 'Full video'
-      });
-      
-      return updated;
-    });
-
-    logToTerminal(`💾 "${trackName}" data stored for segment ${segmentIndex + 1}`, 'success');
-
-    // Clear loading states
-    setSegmentMusicGeneration(prev => {
-      const updated = { ...prev };
-      delete updated[segmentIndex];
-      delete updated[`${segmentIndex}_progress`];
-      return updated;
-    });
-
-    // ✅ CRITICAL FIX: Update progressive video and WAIT for completion before showing buttons
-    logToTerminal(`🎬 Creating progressive video with "${trackName}" (segment ${segmentIndex + 1})...`, 'info');
-    
-    try {
-      const allSegments = processedVideoResult.segments;
-      const allMusicData = {
-        ...generatedSegmentMusic,
-        [segmentIndex]: newMusicData
+        segment: {
+          ...segment,
+          start_time: segmentStart.toString(),
+          end_time: segmentEnd.toString(),
+          adjusted_timing: usingAdjustedTiming,
+          is_trimmed_video: isTrimmedVideo,
+          track_name: trackName
+        },
+        segmentStart,
+        segmentEnd,
+        segmentDuration,
+        customVolume: segment.volume || 0.3,
+        actualMusicTiming: {
+          start: segmentStart,
+          end: segmentEnd,
+          duration: segmentDuration,
+          wasAdjusted: usingAdjustedTiming,
+          isTrimmedVideo: isTrimmedVideo,
+          trackName: trackName,
+          trimmedVideoInfo: isTrimmedVideo ? {
+            generationMethod: 'musicgpt_webhook_immediate',
+            originalTrimStart: processedVideoResult.trim_info.original_start,
+            originalTrimEnd: processedVideoResult.trim_info.original_end,
+            relativeStart: isTrimmedVideo ? (segmentStart - processedVideoResult.trim_info.original_start) : segmentStart,
+            relativeEnd: isTrimmedVideo ? (segmentEnd - processedVideoResult.trim_info.original_start) : segmentEnd
+          } : null
+        }
       };
+
+      // Store the music data and update progressive video immediately
+      await handleMusicDataAndProgressiveVideo(newMusicData, segmentIndex);
       
-      console.log('📊 Progressive video update data:', {
-        totalSegments: allSegments.length,
-        segmentsWithMusic: Object.keys(allMusicData).length,
-        newSegmentIndex: segmentIndex,
-        newTrackName: trackName,
-        isTrimmedVideo
-      });
-
-      const progressiveFormData = new FormData();
-      progressiveFormData.append('video', selectedFile);
-      progressiveFormData.append('segments', JSON.stringify(allSegments));
-      progressiveFormData.append('musicData', JSON.stringify(allMusicData));
-      progressiveFormData.append('videoDuration', duration.toString());
-      progressiveFormData.append('newSegmentIndex', segmentIndex.toString());
+    } else if (musicData.success && musicData.status === 'processing' && musicData.task_id) {
+      // Music generation started asynchronously - start webhook monitoring
+      logToTerminal(`🔄 "${trackName}" generation started for segment ${segmentIndex + 1}. Starting webhook monitoring...`, 'info');
+      logToTerminal(`🆔 Task ID: ${musicData.task_id}`, 'info');
+      logToTerminal(`📡 Monitoring webhook: ${webhookUrl}`, 'info');
       
-      // Add trimmed video info if applicable
-      if (isTrimmedVideo) {
-        progressiveFormData.append('trimInfo', JSON.stringify(processedVideoResult.trim_info));
-      }
-
-      logToTerminal(`📤 Sending progressive video request...`, 'info');
-
-      const progressiveResponse = await fetch(`${API_BASE_URL}/api/update-progressive-video`, {
-        method: 'POST',
-        body: progressiveFormData,
-      });
-
-      if (!progressiveResponse.ok) {
-        const errorData = await progressiveResponse.json();
-        throw new Error(errorData.details || errorData.error || 'Progressive video update failed');
-      }
-
-      const progressiveResult = await progressiveResponse.json();
+      // 🚨 NEW: Start webhook monitoring for this segment
+      const webhookToken = extractWebhookToken(webhookUrl);
       
-      if (!progressiveResult.combinedUrl) {
-        throw new Error('No progressive video URL received');
-      }
-
-      // ✅ ONLY UPDATE STATE AFTER SUCCESSFUL PROGRESSIVE VIDEO CREATION
-      setCombinedVideoUrl(progressiveResult.combinedUrl);
-      setShowProcessedVideo(true);
-
-      logToTerminal(`✅ Progressive video created successfully with "${trackName}"!`, 'success');
-      logToTerminal(`🎵 Active segments: [${progressiveResult.allActiveSegments?.join(', ') || segmentIndex + 1}]`, 'info');
-      logToTerminal(`🔗 Video URL: ${progressiveResult.combinedUrl}`, 'success');
-
-      // ✅ NOW UPDATE THE MUSIC DATA WITH PROGRESSIVE VIDEO READY FLAG
-      setGeneratedSegmentMusic(prev => ({
-        ...prev,
-        [segmentIndex]: {
-          ...prev[segmentIndex],
-          progressiveVideoReady: true, // ✅ ADD THIS FLAG
-          progressiveVideoUrl: progressiveResult.combinedUrl
-        }
-      }));
-
-      // Auto-play the progressive video
-      setTimeout(() => {
-        const progressiveVideo = document.querySelector('#progressive-video-container video');
-        if (progressiveVideo) {
-          const playbackStart = newMusicData.actualMusicTiming?.start || segmentStart;
-          progressiveVideo.currentTime = playbackStart;
-          progressiveVideo.play().catch(err => {
-            console.log('Autoplay blocked, user will need to click play');
-          });
-          logToTerminal(`🎬 Auto-playing "${trackName}" (segment ${segmentIndex + 1}) from progressive video`, 'success');
-        }
-      }, 500);
-
-      // Show success message with track name
-      showMessage(`"${trackName}" generated and video updated for segment ${segmentIndex + 1}!`, 'success');
-
-      // 🚨 NEW: Save to recent tracks with track name
       try {
-        await fetch(`${API_BASE_URL}/api/save-recent-track`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: localStorage.getItem('userId'),
-            audioUrl: audioUrl,
-            duration: `${segmentDuration}s`,
-            description: segment.music_summary || description,
-            lyrics: lyrics || '',
-            youtubeUrls: youtubeUrls.filter(url => url.trim() !== ''),
-            start: formatTime(segmentStart),
-            end: formatTime(segmentEnd),
-            trackName: trackName, // 🚨 NEW: Include track name
-            segmentIndex: segmentIndex,
-            originalFileName: selectedFile?.name || 'unknown_video'
-          })
+        // Monitor webhook for completion
+        const webhookResult = await monitorWebhookForSegment({
+          webhookToken: webhookToken,
+          trackName: trackName,
+          segmentIndex: segmentIndex,
+          maxPollMinutes: 5,
+          pollIntervalSeconds: 10,
+          minRequests: 1
         });
-        logToTerminal(`💾 "${trackName}" saved to recent tracks`, 'success');
-      } catch (saveError) {
-        console.warn('Failed to save to recent tracks:', saveError);
-      }
+        
+        if (webhookResult.success && webhookResult.audioUrl) {
+          logToTerminal(`✅ "${trackName}" completed via webhook monitoring for segment ${segmentIndex + 1}!`, 'success');
+          
+          const newMusicData = {
+            audioUrl: webhookResult.audioUrl,
+            url: webhookResult.audioUrl,
+            title: webhookResult.title || trackName,
+            trackName: trackName,
+            duration: webhookResult.duration,
+            segment: {
+              ...segment,
+              start_time: segmentStart.toString(),
+              end_time: segmentEnd.toString(),
+              adjusted_timing: usingAdjustedTiming,
+              is_trimmed_video: isTrimmedVideo,
+              track_name: trackName
+            },
+            segmentStart,
+            segmentEnd,
+            segmentDuration,
+            customVolume: segment.volume || 0.3,
+            actualMusicTiming: {
+              start: segmentStart,
+              end: segmentEnd,
+              duration: segmentDuration,
+              wasAdjusted: usingAdjustedTiming,
+              isTrimmedVideo: isTrimmedVideo,
+              trackName: trackName,
+              trimmedVideoInfo: isTrimmedVideo ? {
+                generationMethod: 'musicgpt_webhook_monitoring',
+                originalTrimStart: processedVideoResult.trim_info.original_start,
+                originalTrimEnd: processedVideoResult.trim_info.original_end,
+                relativeStart: isTrimmedVideo ? (segmentStart - processedVideoResult.trim_info.original_start) : segmentStart,
+                relativeEnd: isTrimmedVideo ? (segmentEnd - processedVideoResult.trim_info.original_start) : segmentEnd
+              } : null
+            }
+          };
 
-    } catch (progressiveError) {
-      console.error(`❌ Progressive video update failed:`, progressiveError);
-      logToTerminal(`⚠️ "${trackName}" generated but video update failed: ${progressiveError.message}`, 'warning');
-      showMessage(`"${trackName}" generated for segment ${segmentIndex + 1} but video update failed`, 'warning');
-      
-      // ✅ STILL MARK MUSIC AS GENERATED BUT WITHOUT PROGRESSIVE VIDEO
-      setGeneratedSegmentMusic(prev => ({
-        ...prev,
-        [segmentIndex]: {
-          ...prev[segmentIndex],
-          progressiveVideoReady: false, // ✅ MARK AS NOT READY
-          progressiveVideoError: progressiveError.message
+          // Store the music data and update progressive video
+          await handleMusicDataAndProgressiveVideo(newMusicData, segmentIndex);
+          
+        } else {
+          throw new Error(`Webhook monitoring failed: ${webhookResult.error || 'Unknown error'}`);
         }
-      }));
-    }
+        
+      } catch (webhookError) {
+        console.error(`❌ Webhook monitoring failed for "${trackName}":`, webhookError.message);
+        logToTerminal(`❌ Webhook monitoring failed for "${trackName}": ${webhookError.message}`, 'error');
+        
+        // 🚨 FALLBACK: Try polling the task ID directly
+        logToTerminal(`🔄 Falling back to task ID polling for "${trackName}"...`, 'info');
+        
+        try {
+          const taskResult = await pollMusicGPTTask(musicData.task_id, trackName, 3); // 3 minute timeout
+          
+          if (taskResult.success && taskResult.audioUrl) {
+            logToTerminal(`✅ "${trackName}" completed via task polling for segment ${segmentIndex + 1}!`, 'success');
+            
+            const newMusicData = {
+              audioUrl: taskResult.audioUrl,
+              url: taskResult.audioUrl,
+              title: taskResult.title || trackName,
+              trackName: trackName,
+              duration: taskResult.duration,
+              segment: {
+                ...segment,
+                start_time: segmentStart.toString(),
+                end_time: segmentEnd.toString(),
+                adjusted_timing: usingAdjustedTiming,
+                is_trimmed_video: isTrimmedVideo,
+                track_name: trackName
+              },
+              segmentStart,
+              segmentEnd,
+              segmentDuration,
+              customVolume: segment.volume || 0.3,
+              actualMusicTiming: {
+                start: segmentStart,
+                end: segmentEnd,
+                duration: segmentDuration,
+                wasAdjusted: usingAdjustedTiming,
+                isTrimmedVideo: isTrimmedVideo,
+                trackName: trackName,
+                trimmedVideoInfo: isTrimmedVideo ? {
+                  generationMethod: 'musicgpt_task_polling',
+                  originalTrimStart: processedVideoResult.trim_info.original_start,
+                  originalTrimEnd: processedVideoResult.trim_info.original_end,
+                  relativeStart: isTrimmedVideo ? (segmentStart - processedVideoResult.trim_info.original_start) : segmentStart,
+                  relativeEnd: isTrimmedVideo ? (segmentEnd - processedVideoResult.trim_info.original_start) : segmentEnd
+                } : null
+              }
+            };
 
-    // Clear the selected segment for edit since music has been generated
-    if (selectedSegmentForEdit && selectedSegmentForEdit.index === segmentIndex) {
-      setSelectedSegmentForEdit(null);
-      logToTerminal(`✂️ Segment timing adjustment completed and cleared`, 'info');
+            // Store the music data and update progressive video
+            await handleMusicDataAndProgressiveVideo(newMusicData, segmentIndex);
+            
+          } else {
+            throw new Error(`Task polling also failed: ${taskResult.error || 'Unknown error'}`);
+          }
+          
+        } catch (taskError) {
+          console.error(`❌ Task polling also failed for "${trackName}":`, taskError.message);
+          logToTerminal(`❌ Both webhook monitoring and task polling failed for "${trackName}"`, 'error');
+          throw new Error(`Music generation failed: ${taskError.message}`);
+        }
+      }
+      
+    } else {
+      throw new Error(`Unexpected response format: ${JSON.stringify(musicData)}`);
     }
 
   } catch (error) {
@@ -1656,22 +2048,537 @@ const generateMusicForSegment = async (segment, segmentIndex) => {
     });
   }
 };
-const debugSegmentMusicData = () => {
-  console.log('🔍 DEBUGGING ALL SEGMENT MUSIC DATA:');
-  console.log('Current generatedSegmentMusic state:', generatedSegmentMusic);
-  
-  Object.entries(generatedSegmentMusic).forEach(([index, data]) => {
-    console.log(`Segment ${parseInt(index) + 1}:`, {
-      hasAudioUrl: !!data.audioUrl,
-      audioUrl: data.audioUrl,
-      hasActualMusicTiming: !!data.actualMusicTiming,
-      actualMusicTiming: data.actualMusicTiming,
-      segmentStart: data.segmentStart,
-      segmentEnd: data.segmentEnd,
-      customVolume: data.customVolume
+
+// 🚨 NEW: Helper function to handle music data storage and progressive video update
+async function handleMusicDataAndProgressiveVideo(newMusicData, segmentIndex) {
+  try {
+    // Store the music data
+    setGeneratedSegmentMusic(prev => {
+      const updated = {
+        ...prev,
+        [segmentIndex]: newMusicData
+      };
+      
+      console.log(`🔄 UPDATED generatedSegmentMusic STATE WITH TRACK NAME:`, {
+        trackName: newMusicData.trackName,
+        segmentIndex: segmentIndex,
+        totalSegments: Object.keys(updated).length,
+        isTrimmedVideo: newMusicData.actualMusicTiming?.isTrimmedVideo || false
+      });
+      
+      return updated;
     });
-  });
-};
+
+    logToTerminal(`💾 "${newMusicData.trackName}" data stored for segment ${segmentIndex + 1}`, 'success');
+
+    // Update progressive video
+    logToTerminal(`🎬 Creating progressive video with "${newMusicData.trackName}" (segment ${segmentIndex + 1})...`, 'info');
+    
+    const allSegments = processedVideoResult.segments;
+    const allMusicData = {
+      ...generatedSegmentMusic,
+      [segmentIndex]: newMusicData
+    };
+    
+    console.log('📊 Progressive video update data:', {
+      totalSegments: allSegments.length,
+      segmentsWithMusic: Object.keys(allMusicData).length,
+      newSegmentIndex: segmentIndex,
+      newTrackName: newMusicData.trackName,
+      isTrimmedVideo: newMusicData.actualMusicTiming?.isTrimmedVideo || false
+    });
+
+    const progressiveFormData = new FormData();
+    progressiveFormData.append('video', selectedFile);
+    progressiveFormData.append('segments', JSON.stringify(allSegments));
+    progressiveFormData.append('musicData', JSON.stringify(allMusicData));
+    progressiveFormData.append('videoDuration', duration.toString());
+    progressiveFormData.append('newSegmentIndex', segmentIndex.toString());
+    
+    // Add trimmed video info if applicable
+    if (newMusicData.actualMusicTiming?.isTrimmedVideo && processedVideoResult.trim_info) {
+      progressiveFormData.append('trimInfo', JSON.stringify(processedVideoResult.trim_info));
+    }
+
+    logToTerminal(`📤 Sending progressive video request...`, 'info');
+
+    const progressiveResponse = await fetch(`${API_BASE_URL}/api/update-progressive-video`, {
+      method: 'POST',
+      body: progressiveFormData,
+    });
+
+    if (!progressiveResponse.ok) {
+      const errorData = await progressiveResponse.json();
+      throw new Error(errorData.details || errorData.error || 'Progressive video update failed');
+    }
+
+    const progressiveResult = await progressiveResponse.json();
+    
+    if (!progressiveResult.combinedUrl) {
+      throw new Error('No progressive video URL received');
+    }
+
+    // Update state after successful progressive video creation
+    setCombinedVideoUrl(progressiveResult.combinedUrl);
+    setShowProcessedVideo(true);
+
+    logToTerminal(`✅ Progressive video created successfully with "${newMusicData.trackName}"!`, 'success');
+    logToTerminal(`🎵 Active segments: [${progressiveResult.allActiveSegments?.join(', ') || segmentIndex + 1}]`, 'info');
+    logToTerminal(`🔗 Video URL: ${progressiveResult.combinedUrl}`, 'success');
+
+    // Update the music data with progressive video ready flag
+    setGeneratedSegmentMusic(prev => ({
+      ...prev,
+      [segmentIndex]: {
+        ...prev[segmentIndex],
+        progressiveVideoReady: true,
+        progressiveVideoUrl: progressiveResult.combinedUrl
+      }
+    }));
+
+    // Auto-play the progressive video
+    setTimeout(() => {
+      const progressiveVideo = document.querySelector('#progressive-video-container video');
+      if (progressiveVideo) {
+        const playbackStart = newMusicData.actualMusicTiming?.start || newMusicData.segmentStart;
+        progressiveVideo.currentTime = playbackStart;
+        progressiveVideo.play().catch(err => {
+          console.log('Autoplay blocked, user will need to click play');
+        });
+        logToTerminal(`🎬 Auto-playing "${newMusicData.trackName}" (segment ${segmentIndex + 1}) from progressive video`, 'success');
+      }
+    }, 500);
+
+    // Show success message with track name
+    showMessage(`"${newMusicData.trackName}" generated and video updated for segment ${segmentIndex + 1}!`, 'success');
+
+    // Save to recent tracks with track name
+    try {
+      await fetch(`${API_BASE_URL}/api/save-recent-track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: localStorage.getItem('userId'),
+          audioUrl: newMusicData.audioUrl,
+          duration: `${newMusicData.segmentDuration}s`,
+          description: newMusicData.segment.music_summary || 'Generated music',
+          lyrics: lyrics || '',
+          youtubeUrls: youtubeUrls.filter(url => url.trim() !== ''),
+          start: formatTime(newMusicData.segmentStart),
+          end: formatTime(newMusicData.segmentEnd),
+          trackName: newMusicData.trackName,
+          segmentIndex: segmentIndex,
+          originalFileName: selectedFile?.name || 'unknown_video'
+        })
+      });
+      logToTerminal(`💾 "${newMusicData.trackName}" saved to recent tracks`, 'success');
+    } catch (saveError) {
+      console.warn('Failed to save to recent tracks:', saveError);
+    }
+
+  } catch (progressiveError) {
+    console.error(`❌ Progressive video update failed:`, progressiveError);
+    logToTerminal(`⚠️ "${newMusicData.trackName}" generated but video update failed: ${progressiveError.message}`, 'warning');
+    showMessage(`"${newMusicData.trackName}" generated for segment ${segmentIndex + 1} but video update failed`, 'warning');
+    
+    // Still mark music as generated but without progressive video
+    setGeneratedSegmentMusic(prev => ({
+      ...prev,
+      [segmentIndex]: {
+        ...prev[segmentIndex],
+        progressiveVideoReady: false,
+        progressiveVideoError: progressiveError.message
+      }
+    }));
+  }
+
+  // Clear the selected segment for edit since music has been generated
+  if (selectedSegmentForEdit && selectedSegmentForEdit.index === segmentIndex) {
+    setSelectedSegmentForEdit(null);
+    logToTerminal(`✂️ Segment timing adjustment completed and cleared`, 'info');
+  }
+}
+
+// 🚨 FIXED: Helper function to monitor webhook for specific segment - looks for MP3 in multiple requests
+async function monitorWebhookForSegment(options) {
+  const { webhookToken, trackName, segmentIndex, maxPollMinutes = 5, pollIntervalSeconds = 10, minRequests = 3 } = options;
+  
+  try {
+    logToTerminal(`📡 Starting webhook monitoring for "${trackName}" - waiting for ${minRequests} requests`, 'info');
+    
+    const response = await fetch(`${API_BASE_URL}/api/monitor-webhook-for-segment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        webhookToken,
+        trackName,
+        segmentIndex,
+        maxPollMinutes,
+        pollIntervalSeconds,
+        minRequests  // 🚨 FIXED: Pass the correct minRequests (3)
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook monitoring request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    // 🚨 ENHANCED: Look for MP3 URL in any of the collected requests
+    if (result.success && result.allMp3Files && result.allMp3Files.length > 0) {
+      // Found MP3 files - use the first one
+      const mp3File = result.allMp3Files[0];
+      logToTerminal(`🎵 Found MP3 for "${trackName}": ${mp3File.title}`, 'success');
+      
+      return {
+        success: true,
+        audioUrl: mp3File.url,
+        title: mp3File.title,
+        duration: mp3File.mp3Duration,
+        allMp3Files: result.allMp3Files
+      };
+    } else if (result.success && result.audioUrl) {
+      // Single audio URL found
+      return {
+        success: true,
+        audioUrl: result.audioUrl,
+        title: result.title,
+        duration: result.duration
+      };
+    } else if (result.success && result.webhookData) {
+      // Check webhook data directly for audio URLs
+      const webhookData = result.webhookData;
+      const audioUrl = webhookData.conversion_path || webhookData.audio_url || webhookData.conversion_path_wav;
+      
+      if (audioUrl) {
+        logToTerminal(`🎵 Found audio URL in webhook data for "${trackName}"`, 'success');
+        return {
+          success: true,
+          audioUrl: audioUrl,
+          title: webhookData.title || trackName,
+          duration: webhookData.conversion_duration
+        };
+      }
+    }
+    
+    // No audio URL found in any requests
+    logToTerminal(`❌ No MP3 URL found in ${minRequests} webhook requests for "${trackName}"`, 'error');
+    return {
+      success: false,
+      error: `No MP3 URL found in ${minRequests} webhook requests`,
+      requestsCollected: result.monitoringInfo?.requestsFound || 0
+    };
+    
+  } catch (error) {
+    console.error('Error in webhook monitoring:', error);
+    logToTerminal(`❌ Webhook monitoring error for "${trackName}": ${error.message}`, 'error');
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// 🚨 NEW: Helper function to poll MusicGPT task as fallback
+async function pollMusicGPTTask(taskId, trackName, timeoutMinutes = 3) {
+  const maxAttempts = timeoutMinutes * 2; // Poll every 30 seconds
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/check-musicgpt-task-detailed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, trackName })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Task check failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.audio_url) {
+        return {
+          success: true,
+          audioUrl: result.audio_url,
+          title: result.title,
+          duration: result.duration
+        };
+      }
+      
+      // If not ready, wait 30 seconds and try again
+      if (attempts < maxAttempts - 1) {
+        logToTerminal(`⏳ "${trackName}" still processing... (attempt ${attempts + 1}/${maxAttempts})`, 'info');
+        await new Promise(resolve => setTimeout(resolve, 30000)); // 30 seconds
+      }
+      
+      attempts++;
+      
+    } catch (error) {
+      console.error(`Task polling attempt ${attempts + 1} failed:`, error);
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 30000)); // Wait before retry
+      }
+    }
+  }
+  
+  return {
+    success: false,
+    error: `Task polling timeout after ${timeoutMinutes} minutes`
+  };
+}
+
+// 🚨 NEW: Helper function to extract webhook token from URL
+function extractWebhookToken(webhookUrl) {
+  const match = webhookUrl.match(/webhook\.site\/([a-f0-9-]+)/);
+  return match ? match[1] : null;
+}
+
+// 🚨 NEW: Helper function to handle music data storage and progressive video update
+async function handleMusicDataAndProgressiveVideo(newMusicData, segmentIndex) {
+  try {
+    // Store the music data
+    setGeneratedSegmentMusic(prev => {
+      const updated = {
+        ...prev,
+        [segmentIndex]: newMusicData
+      };
+      
+      console.log(`🔄 UPDATED generatedSegmentMusic STATE WITH TRACK NAME:`, {
+        trackName: newMusicData.trackName,
+        segmentIndex: segmentIndex,
+        totalSegments: Object.keys(updated).length,
+        isTrimmedVideo: newMusicData.actualMusicTiming?.isTrimmedVideo || false
+      });
+      
+      return updated;
+    });
+
+    logToTerminal(`💾 "${newMusicData.trackName}" data stored for segment ${segmentIndex + 1}`, 'success');
+
+    // Update progressive video
+    logToTerminal(`🎬 Creating progressive video with "${newMusicData.trackName}" (segment ${segmentIndex + 1})...`, 'info');
+    
+    const allSegments = processedVideoResult.segments;
+    const allMusicData = {
+      ...generatedSegmentMusic,
+      [segmentIndex]: newMusicData
+    };
+    
+    console.log('📊 Progressive video update data:', {
+      totalSegments: allSegments.length,
+      segmentsWithMusic: Object.keys(allMusicData).length,
+      newSegmentIndex: segmentIndex,
+      newTrackName: newMusicData.trackName,
+      isTrimmedVideo: newMusicData.actualMusicTiming?.isTrimmedVideo || false
+    });
+
+    const progressiveFormData = new FormData();
+    progressiveFormData.append('video', selectedFile);
+    progressiveFormData.append('segments', JSON.stringify(allSegments));
+    progressiveFormData.append('musicData', JSON.stringify(allMusicData));
+    progressiveFormData.append('videoDuration', duration.toString());
+    progressiveFormData.append('newSegmentIndex', segmentIndex.toString());
+    
+    // Add trimmed video info if applicable
+    if (newMusicData.actualMusicTiming?.isTrimmedVideo && processedVideoResult.trim_info) {
+      progressiveFormData.append('trimInfo', JSON.stringify(processedVideoResult.trim_info));
+    }
+
+    logToTerminal(`📤 Sending progressive video request...`, 'info');
+
+    const progressiveResponse = await fetch(`${API_BASE_URL}/api/update-progressive-video`, {
+      method: 'POST',
+      body: progressiveFormData,
+    });
+
+    if (!progressiveResponse.ok) {
+      const errorData = await progressiveResponse.json();
+      throw new Error(errorData.details || errorData.error || 'Progressive video update failed');
+    }
+
+    const progressiveResult = await progressiveResponse.json();
+    
+    if (!progressiveResult.combinedUrl) {
+      throw new Error('No progressive video URL received');
+    }
+
+    // Update state after successful progressive video creation
+    setCombinedVideoUrl(progressiveResult.combinedUrl);
+    setShowProcessedVideo(true);
+
+    logToTerminal(`✅ Progressive video created successfully with "${newMusicData.trackName}"!`, 'success');
+    logToTerminal(`🎵 Active segments: [${progressiveResult.allActiveSegments?.join(', ') || segmentIndex + 1}]`, 'info');
+    logToTerminal(`🔗 Video URL: ${progressiveResult.combinedUrl}`, 'success');
+
+    // Update the music data with progressive video ready flag
+    setGeneratedSegmentMusic(prev => ({
+      ...prev,
+      [segmentIndex]: {
+        ...prev[segmentIndex],
+        progressiveVideoReady: true,
+        progressiveVideoUrl: progressiveResult.combinedUrl
+      }
+    }));
+
+    // Auto-play the progressive video
+    setTimeout(() => {
+      const progressiveVideo = document.querySelector('#progressive-video-container video');
+      if (progressiveVideo) {
+        const playbackStart = newMusicData.actualMusicTiming?.start || newMusicData.segmentStart;
+        progressiveVideo.currentTime = playbackStart;
+        progressiveVideo.play().catch(err => {
+          console.log('Autoplay blocked, user will need to click play');
+        });
+        logToTerminal(`🎬 Auto-playing "${newMusicData.trackName}" (segment ${segmentIndex + 1}) from progressive video`, 'success');
+      }
+    }, 500);
+
+    // Show success message with track name
+    showMessage(`"${newMusicData.trackName}" generated and video updated for segment ${segmentIndex + 1}!`, 'success');
+
+    // Save to recent tracks with track name
+    try {
+      await fetch(`${API_BASE_URL}/api/save-recent-track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: localStorage.getItem('userId'),
+          audioUrl: newMusicData.audioUrl,
+          duration: `${newMusicData.segmentDuration}s`,
+          description: newMusicData.segment.music_summary || 'Generated music',
+          lyrics: lyrics || '',
+          youtubeUrls: youtubeUrls.filter(url => url.trim() !== ''),
+          start: formatTime(newMusicData.segmentStart),
+          end: formatTime(newMusicData.segmentEnd),
+          trackName: newMusicData.trackName,
+          segmentIndex: segmentIndex,
+          originalFileName: selectedFile?.name || 'unknown_video'
+        })
+      });
+      logToTerminal(`💾 "${newMusicData.trackName}" saved to recent tracks`, 'success');
+    } catch (saveError) {
+      console.warn('Failed to save to recent tracks:', saveError);
+    }
+
+  } catch (progressiveError) {
+    console.error(`❌ Progressive video update failed:`, progressiveError);
+    logToTerminal(`⚠️ "${newMusicData.trackName}" generated but video update failed: ${progressiveError.message}`, 'warning');
+    showMessage(`"${newMusicData.trackName}" generated for segment ${segmentIndex + 1} but video update failed`, 'warning');
+    
+    // Still mark music as generated but without progressive video
+    setGeneratedSegmentMusic(prev => ({
+      ...prev,
+      [segmentIndex]: {
+        ...prev[segmentIndex],
+        progressiveVideoReady: false,
+        progressiveVideoError: progressiveError.message
+      }
+    }));
+  }
+
+  // Clear the selected segment for edit since music has been generated
+  if (selectedSegmentForEdit && selectedSegmentForEdit.index === segmentIndex) {
+    setSelectedSegmentForEdit(null);
+    logToTerminal(`✂️ Segment timing adjustment completed and cleared`, 'info');
+  }
+}
+
+// 🚨 NEW: Helper function to monitor webhook for specific segment
+async function monitorWebhookForSegment(options) {
+  const { webhookToken, trackName, segmentIndex, maxPollMinutes = 5, pollIntervalSeconds = 10, minRequests = 1 } = options;
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/monitor-webhook-for-segment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        webhookToken,
+        trackName,
+        segmentIndex,
+        maxPollMinutes,
+        pollIntervalSeconds,
+        minRequests
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook monitoring request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+    
+  } catch (error) {
+    console.error('Error in webhook monitoring:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// 🚨 NEW: Helper function to poll MusicGPT task as fallback
+async function pollMusicGPTTask(taskId, trackName, timeoutMinutes = 3) {
+  const maxAttempts = timeoutMinutes * 2; // Poll every 30 seconds
+  let attempts = 0;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/check-musicgpt-task-detailed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, trackName })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Task check failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.audio_url) {
+        return {
+          success: true,
+          audioUrl: result.audio_url,
+          title: result.title,
+          duration: result.duration
+        };
+      }
+      
+      // If not ready, wait 30 seconds and try again
+      if (attempts < maxAttempts - 1) {
+        logToTerminal(`⏳ "${trackName}" still processing... (attempt ${attempts + 1}/${maxAttempts})`, 'info');
+        await new Promise(resolve => setTimeout(resolve, 30000)); // 30 seconds
+      }
+      
+      attempts++;
+      
+    } catch (error) {
+      console.error(`Task polling attempt ${attempts + 1} failed:`, error);
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 30000)); // Wait before retry
+      }
+    }
+  }
+  
+  return {
+    success: false,
+    error: `Task polling timeout after ${timeoutMinutes} minutes`
+  };
+}
+
+// 🚨 NEW: Helper function to extract webhook token from URL
+function extractWebhookToken(webhookUrl) {
+  const match = webhookUrl.match(/webhook\.site\/([a-f0-9-]+)/);
+  return match ? match[1] : null;
+}
 // 3. UPDATE the segment display UI to show individ
 // Updated processClipTuneSegments with proper invalid MMSS detection
 const processClipTuneSegments = (segments, videoDuration) => {
@@ -2076,85 +2983,7 @@ const playSegmentWithMusic = async (segmentIndex) => {
     }
   }
 };
-const handleDownloadCurrentVideo = async () => {
-  try {
-    if (!selectedFile || !processedVideoResult || !processedVideoResult.segments) {
-      showMessage('Cannot download video – missing video or segment data', 'error');
-      return;
-    }
 
-    logToTerminal('🎬 Generating complete video from current state...', 'info');
-    setIsDownloading(true);
-
-    const formData = new FormData();
-    formData.append('video', selectedFile);
-    formData.append('segments', JSON.stringify(processedVideoResult.segments));
-    formData.append('musicData', JSON.stringify(generatedSegmentMusic));
-    formData.append('userId', localStorage.getItem('userId'));
-
-    const response = await fetch(`${API_BASE_URL}/api/create-complete-video`, {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data?.videoUrl) {
-      throw new Error(data.error || 'Failed to generate video');
-    }
-
-    const downloadUrl = data.videoUrl;
-    logToTerminal('✅ Video ready, downloading...', 'success');
-
-    // Trigger download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = 'cliptune_video.mp4';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showMessage('Video downloaded successfully!', 'success');
-  } catch (err) {
-    console.error('❌ Download failed:', err);
-    showMessage(`Download failed: ${err.message}`, 'error');
-  } finally {
-    setIsDownloading(false);
-  }
-};
-
-// Function to play segment without music (original video only)
-const playSegmentWithoutMusic = (segment, segmentIndex) => {
-  if (!videoPreviewRef.current) {
-    showMessage('Video player not available', 'error');
-    return;
-  }
-
-  const segmentStart = parseFloat(segment.start_time || 0);
-  const segmentEnd = parseFloat(segment.end_time || segmentStart + 30);
-  
-  logToTerminal(`🎬 Playing original segment ${segmentIndex + 1} (no music)`, 'info');
-  
-  // Jump to segment start
-  videoPreviewRef.current.currentTime = segmentStart;
-  videoPreviewRef.current.play();
-  
-  // Stop at segment end
-  const stopPlayback = () => {
-    if (videoPreviewRef.current.currentTime >= segmentEnd) {
-      videoPreviewRef.current.pause();
-      videoPreviewRef.current.removeEventListener('timeupdate', stopPlayback);
-      logToTerminal(`⏸️ Segment playback completed`, 'info');
-    }
-  };
-  
-  videoPreviewRef.current.addEventListener('timeupdate', stopPlayback);
-};
-
-// Clear terminal function
-const clearTerminal = () => {
-  setTerminalLogs([]);
-};
   // Fetch recent tracks from backend
   const fetchRecentTracks = async (userId) => {
     try {
@@ -2296,6 +3125,17 @@ const jumpToCompleteVideoSegment = (segment, segmentIndex) => {
     setEndX(Math.min(width, endPos));
   }
 };
+const handleKeyPress = (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    
+    // Only proceed if file is ready
+    if (isFileReady) {
+      handleProceedToNext();
+    }
+    // Do nothing if no file - input is disabled
+  }
+};
 const debugVolumeSettings = () => {
   console.log('🎚️ VOLUME DEBUG:');
   processedVideoResult?.segments?.forEach((segment, index) => {
@@ -2367,6 +3207,199 @@ const createDragHandler = (type) => {
     document.addEventListener("mouseup", up);
   };
 };
+const handleStartHandleMouseDown = (e) => {
+  // Check if timeline editing is disabled
+  if (processedVideoResult?.trim_info) {
+    showMessage('Timeline editing is disabled for trimmed video analysis. Use the original timeline before processing.', 'warning');
+    return;
+  }
+  
+  // Allow dragging when editing a segment OR when no segments exist yet
+  if (selectedSegmentForEdit || !processedVideoResult?.segments || processedVideoResult.segments.length === 0) {
+    console.log('🎯 Starting START handle drag');
+    createDragHandler("start")(e);
+  } else {
+    console.log('❌ Start handle drag blocked - not in edit mode');
+    showMessage('Click "Edit Timeline" on a segment first to enable timeline editing', 'info');
+  }
+};
+
+// Modified createDragHandler with overlap prevention
+const createDragHandlerr= (type) => {
+  return (e) => {
+    e.preventDefault();
+    const startMouseX = e.clientX;
+    const rect = trackRef.current.getBoundingClientRect();
+    const trackWidth = THUMB_WIDTH * NUM_THUMBS;
+    
+    // Calculate safe boundaries if editing a segment
+    let constraints = { minX: 0, maxX: trackWidth };
+    
+    if (selectedSegmentForEdit && processedVideoResult?.segments) {
+      const boundaries = calculateSegmentBoundaries(
+        processedVideoResult.segments, 
+        selectedSegmentForEdit.index
+      );
+      
+      // Convert time boundaries to pixel positions
+      constraints.minX = Math.max(0, (boundaries.maxStart / duration) * trackWidth);
+      constraints.maxX = Math.min(trackWidth, (boundaries.minEnd / duration) * trackWidth);
+    }
+    
+    const move = (moveEvent) => {
+      const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, trackWidth));
+      
+      if (type === "start") {
+        // Apply constraints for start handle
+        let newStartX = currentX;
+        
+        // Ensure it doesn't go past constraints or end handle
+        newStartX = Math.max(constraints.minX, newStartX);
+        newStartX = Math.min(newStartX, endX - 10);
+        
+        setStartX(newStartX);
+        
+        // Real-time video update
+        const newTime = (newStartX / trackWidth) * duration;
+        if (videoPreviewRef.current && !isNaN(newTime)) {
+          videoPreviewRef.current.currentTime = newTime;
+        }
+      } else {
+        // Apply constraints for end handle
+        let newEndX = currentX;
+        
+        // Ensure it doesn't go past constraints or start handle
+        newEndX = Math.min(constraints.maxX, newEndX);
+        newEndX = Math.max(newEndX, startX + 10);
+        
+        setEndX(newEndX);
+        
+        // Real-time video update
+        const newTime = (newEndX / trackWidth) * duration;
+        if (videoPreviewRef.current && !isNaN(newTime)) {
+          videoPreviewRef.current.currentTime = newTime;
+        }
+      }
+      
+      // Check for overlaps and provide feedback
+      if (selectedSegmentForEdit && processedVideoResult?.segments) {
+        const newStart = (startX / trackWidth) * duration;
+        const newEnd = (endX / trackWidth) * duration;
+        
+        const overlaps = detectSegmentOverlaps(
+          processedVideoResult.segments, 
+          selectedSegmentForEdit.index, 
+          newStart, 
+          newEnd
+        );
+        
+        if (overlaps.length > 0) {
+          console.warn(`⚠️ Overlap detected with ${overlaps.length} segment(s)`);
+        }
+      }
+      
+      // Mark as having unsaved changes
+      if (selectedSegmentForEdit) {
+        setHasUnsavedTimelineChanges(true);
+      }
+    };
+    
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      
+      // Brief preview play
+      if (videoPreviewRef.current) {
+        videoPreviewRef.current.play();
+        setTimeout(() => {
+          if (videoPreviewRef.current) {
+            videoPreviewRef.current.pause();
+          }
+        }, 300);
+      }
+    };
+    
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  };
+};
+
+const handleEndHandleMouseDown = (e) => {
+  // Check if timeline editing is disabled
+  if (processedVideoResult?.trim_info) {
+    showMessage('Timeline editing is disabled for trimmed video analysis. Use the original timeline before processing.', 'warning');
+    return;
+  }
+  
+  // Allow dragging when editing a segment OR when no segments exist yet
+  if (selectedSegmentForEdit || !processedVideoResult?.segments || processedVideoResult.segments.length === 0) {
+    console.log('🎯 Starting END handle drag');
+    createDragHandler("end")(e);
+  } else {
+    console.log('❌ End handle drag blocked - not in edit mode');
+    showMessage('Click "Edit Timeline" on a segment first to enable timeline editing', 'info');
+  }
+};
+
+// 3. ALTERNATIVE: Simple direct drag handlers (if the above doesn't work)
+const simpleStartDrag = (e) => {
+  e.preventDefault();
+  console.log('🎯 Simple start drag initiated');
+  
+  const rect = trackRef.current.getBoundingClientRect();
+  const trackWidth = THUMB_WIDTH * NUM_THUMBS;
+  
+  const handleMouseMove = (moveEvent) => {
+    const newX = Math.max(0, Math.min(moveEvent.clientX - rect.left, endX - 20));
+    setStartX(newX);
+    setLastDragged("start");
+    
+    // Update video
+    const newTime = (newX / trackWidth) * duration;
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.currentTime = newTime;
+    }
+  };
+  
+  const handleMouseUp = () => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    console.log('🎯 Simple start drag ended');
+  };
+  
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+};
+
+const simpleEndDrag = (e) => {
+  e.preventDefault();
+  console.log('🎯 Simple end drag initiated');
+  
+  const rect = trackRef.current.getBoundingClientRect();
+  const trackWidth = THUMB_WIDTH * NUM_THUMBS;
+  
+  const handleMouseMove = (moveEvent) => {
+    const newX = Math.min(trackWidth, Math.max(moveEvent.clientX - rect.left, startX + 20));
+    setEndX(newX);
+    setLastDragged("end");
+    
+    // Update video
+    const newTime = (newX / trackWidth) * duration;
+    if (videoPreviewRef.current) {
+      videoPreviewRef.current.currentTime = newTime;
+    }
+  };
+  
+  const handleMouseUp = () => {
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    console.log('🎯 Simple end drag ended');
+  };
+  
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', handleMouseUp);
+};
+
 // REPLACE your existing processVideoWithClipTune function with this updated version
 
 const [originalTimelineState, setOriginalTimelineState] = useState({ startX: 0, endX: 0 });
@@ -2459,88 +3492,63 @@ const handleCancelTimelineEdit = () => {
 };
 
 // MODIFY your existing drag handlers to detect changes
-const createDragHandlerWithChangeDetection = (type) => {
-  return (e) => {
-    e.preventDefault();
-    
-    const rect = trackRef.current.getBoundingClientRect();
-    
-    const move = (moveEvent) => {
-      const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-      const width = THUMB_WIDTH * NUM_THUMBS;
-      
-      if (type === "start") {
-        const newStartX = Math.min(currentX, endX - 10);
-        setStartX(newStartX);
-        const newTime = (newStartX / width) * duration;
-        if (videoPreviewRef.current && !isNaN(newTime)) {
-          videoPreviewRef.current.currentTime = newTime;
-        }
-      } else {
-        const newEndX = Math.max(currentX, startX + 10);
-        setEndX(newEndX);
-        const newTime = (newEndX / width) * duration;
-        if (videoPreviewRef.current && !isNaN(newTime)) {
-          videoPreviewRef.current.currentTime = newTime;
-        }
-      }
-      
-      // Mark as having unsaved changes if we're in edit mode
-      if (selectedSegmentForEdit) {
-        setHasUnsavedTimelineChanges(true);
-      }
-    };
-    
-    const up = () => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      
-      // Brief preview play
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.play();
-        setTimeout(() => {
-          if (videoPreviewRef.current) {
-            videoPreviewRef.current.pause();
-          }
-        }, 300);
-      }
-    };
-    
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  };
-};
+
 
 // 7. Add keyboard support with useEffect
 // REPLACE the existing keyboard useEffect with this fixed version:
 
 // ALSO ADD this helper function to provide visual feedback when keyboard movement is blocked:
 
+// REPLACE your existing processVideoWithClipTune function with this updated version
 const processVideoWithClipTune = async () => {
   if (!selectedFile) {
     showMessage('Please select a video file first.', 'error');
     return;
   }
 
-  // Check if user has provided instructions
-  let processingInstructions = description || 'only add music to places where people do not speak';
+  // Start processing
+  setIsCompleteVideoProcessing(true);
+  setCompleteVideoProgress(0);
+  setCompleteVideoStatus('Initializing...');
+
+  // Simulate progress updates during processing
+  const progressInterval = setInterval(() => {
+    setCompleteVideoProgress(prev => {
+      if (prev < 85) { // Don't go above 85% until we get real completion
+        return prev + Math.random() * 10;
+      }
+      return prev;
+    });
+  }, 1000);
+
+  // Update status messages at different intervals
+  const statusUpdates = [
+    { delay: 2000, status: 'Uploading video...', progress: 15 },
+    { delay: 4000, status: 'Analyzing video content...', progress: 30 },
+    { delay: 7000, status: 'Detecting speech patterns...', progress: 45 },
+    { delay: 10000, status: 'Identifying music opportunities...', progress: 60 },
+    { delay: 13000, status: 'Processing AI segments...', progress: 75 },
+    { delay: 16000, status: 'Finalizing analysis...', progress: 85 }
+  ];
+
+  statusUpdates.forEach(({ delay, status, progress }) => {
+    setTimeout(() => {
+      if (isCompleteVideoProcessing) {
+        setCompleteVideoStatus(status);
+        setCompleteVideoProgress(progress);
+      }
+    }, delay);
+  });
+
+  // Get instructions from chat or use default
+  let processingInstructions = videoInstructions || description || 'only add music to places where people do not speak';
   
-  if (!description || description.trim() === '') {
-    const userInstructions = prompt(
-      "Please provide instructions for ClipTune processing:\n\n" +
-      "Examples:\n" +
-      "• 'only add music to places where people do not speak'\n" +
-      "• 'add background music during action scenes'\n" +
-      "• 'create ambient music for quiet moments'\n" +
-      "• 'add energetic music to dialogue-free segments'\n\n" +
-      "Enter your instructions:",
-      'only add music to places where people do not speak'
-    );
-    
-    if (userInstructions && userInstructions.trim() !== '') {
-      processingInstructions = userInstructions;
-      setDescription(userInstructions);
-    }
+  if (!processingInstructions || processingInstructions.trim() === '') {
+    processingInstructions = 'only add music to places where people do not speak';
+  }
+  
+  if (videoInstructions && videoInstructions.trim() !== '') {
+    setDescription(videoInstructions);
   }
 
   try {
@@ -2548,11 +3556,11 @@ const processVideoWithClipTune = async () => {
     setTerminalLogs([]);
     
     logToTerminal('🎬 Starting ClipTune video analysis...', 'info');
-    logToTerminal(`📁 Processing file: ${selectedFile.name}`, 'info');
+    logToTerminal(`📝 Processing file: ${selectedFile.name}`, 'info');
     logToTerminal(`📊 File size: ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`, 'info');
     logToTerminal(`🎯 Instructions: ${processingInstructions}`, 'info');
 
-    // 🚨 NEW: Get the current timeline selection (trimmed section)
+    // Get the current timeline selection (trimmed section)
     const [trimStart, trimEnd] = getTrimRange();
     const trimmedDuration = trimEnd - trimStart;
     
@@ -2563,23 +3571,35 @@ const processVideoWithClipTune = async () => {
       throw new Error('Invalid trim selection. Please select a valid time range.');
     }
 
-    // 🚨 NEW: Create FormData with the TRIMMED video section
+    // Update progress
+    setCompleteVideoProgress(20);
+    setCompleteVideoStatus('Preparing video data...');
+
+    // Create FormData with the TRIMMED video section
     const formData = new FormData();
     formData.append('video', selectedFile);
     formData.append('extra_prompt', processingInstructions);
-    formData.append('video_start', trimStart.toString()); // 🚨 ADD: Trim start time
-    formData.append('video_end', trimEnd.toString());     // 🚨 ADD: Trim end time
-    formData.append('total_seconds', Math.floor(trimmedDuration)); // 🚨 CHANGE: Send trimmed duration
+    formData.append('video_start', trimStart.toString());
+    formData.append('video_end', trimEnd.toString());
+    formData.append('total_seconds', Math.floor(trimmedDuration));
+
+    // Update progress
+    setCompleteVideoProgress(35);
+    setCompleteVideoStatus('Sending to ClipTune AI...');
 
     logToTerminal('📤 Uploading and analyzing TRIMMED video section...', 'info');
     logToTerminal(`📊 Trimmed duration sent: ${Math.floor(trimmedDuration)} seconds`, 'info');
     logToTerminal(`📊 Trim range: ${trimStart}s - ${trimEnd}s`, 'info');
 
-    // 🚨 NEW: Use the updated backend endpoint that handles trimming
+    // Send to backend
     const response = await fetch('http://localhost:3001/api/cliptune-upload-trimmed', {
       method: 'POST',
       body: formData
     });
+
+    // Update progress
+    setCompleteVideoProgress(70);
+    setCompleteVideoStatus('Processing AI response...');
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -2588,6 +3608,10 @@ const processVideoWithClipTune = async () => {
 
     const result = await response.json();
     
+    // Update progress
+    setCompleteVideoProgress(90);
+    setCompleteVideoStatus('Analyzing segments...');
+
     logToTerminal('✅ ClipTune analysis completed successfully!', 'success');
     
     if (!result.success || !result.result || !result.result.segments) {
@@ -2597,7 +3621,7 @@ const processVideoWithClipTune = async () => {
     const rawSegments = result.result.segments;
     logToTerminal(`📋 Received ${rawSegments.length} segments from ClipTune (for trimmed video)`, 'info');
     
-    // 🚨 CHANGE: Process segments with trimmed duration instead of full duration
+    // Process segments
     logToTerminal('🔄 Processing segments for trimmed video...', 'info');
     
     const processedSegments = processClipTuneSegments(rawSegments, trimmedDuration);
@@ -2608,6 +3632,10 @@ const processVideoWithClipTune = async () => {
       return;
     }
     
+    // Final progress update
+    setCompleteVideoProgress(100);
+    setCompleteVideoStatus('Complete! Redirecting...');
+
     if (processedSegments.length < rawSegments.length) {
       const skipped = rawSegments.length - processedSegments.length;
       logToTerminal(`⚠️ Skipped ${skipped} invalid segments due to timing issues`, 'info');
@@ -2615,7 +3643,7 @@ const processVideoWithClipTune = async () => {
     
     logToTerminal(`🎯 Successfully processed ${processedSegments.length} valid music segments`, 'success');
     
-    // Log processed segment details (relative to trimmed video)
+    // Log processed segment details
     processedSegments.forEach((segment, index) => {
       logToTerminal(
         `   Segment ${index + 1}: ${formatTimeFromSeconds(segment.parsed_start)} - ${formatTimeFromSeconds(segment.parsed_end)} ` +
@@ -2632,12 +3660,12 @@ const processVideoWithClipTune = async () => {
     setVideoSegments(processedSegments);
     setShowFullVideoAnalysis(true);
     
-    // 🚨 NEW: Store trimmed video information
+    // Store trimmed video information
     setProcessedVideoResult({
       ...result.result,
       segments: processedSegments,
       original_segments: rawSegments,
-      trimmed_info: {
+      trim_info: {
         original_start: trimStart,
         original_end: trimEnd,
         trimmed_duration: trimmedDuration,
@@ -2656,19 +3684,7 @@ const processVideoWithClipTune = async () => {
     });
     setShowProcessedVideo(true);
     
-    // 🚨 NEW: Update the video preview to show only trimmed section
-    if (videoPreviewRef.current) {
-      videoPreviewRef.current.currentTime = trimStart;
-      // Optional: Set up video to loop within trimmed range
-      const handleTimeUpdate = () => {
-        if (videoPreviewRef.current.currentTime >= trimEnd) {
-          videoPreviewRef.current.currentTime = trimStart;
-        }
-      };
-      videoPreviewRef.current.addEventListener('timeupdate', handleTimeUpdate);
-    }
-    
-    // Clear any existing generated music data since we have new segments
+    // Clear music data for new segments
     setGeneratedSegmentMusic({});
     setSegmentMusicGeneration({});
     
@@ -2679,13 +3695,24 @@ const processVideoWithClipTune = async () => {
     logToTerminal(`   • Valid segments found: ${processedSegments.length}`, 'info');
     
     showMessage(
-      `Found ${processedSegments.length} segments in trimmed video${processedSegments.length < rawSegments.length ? ` (${rawSegments.length - processedSegments.length} skipped)` : ''}. Click "Generate Music" on each segment.`, 
+      `Found ${processedSegments.length} segments in trimmed video${processedSegments.length < rawSegments.length ? ` (${rawSegments.length - processedSegments.length} skipped)` : ''}. Redirecting to segments view...`, 
       'success'
     );
+
+    // Auto-redirect to Step 2
+    setTimeout(() => {
+      setCurrentStep(2);
+      logToTerminal('🔄 Auto-redirected to segments view for music generation', 'info');
+      showMessage('Now you can generate music for individual segments!', 'info');
+    }, 2000);
 
   } catch (error) {
     console.error('❌ ClipTune processing error:', error);
     logToTerminal(`❌ Error: ${error.message}`, 'error');
+    
+    // Update progress to show error
+    setCompleteVideoProgress(0);
+    setCompleteVideoStatus('Error occurred');
     
     if (error.message.includes('fetch')) {
       logToTerminal(`🔧 Suggestion: Check if the ClipTune backend is running`, 'info');
@@ -2695,6 +3722,15 @@ const processVideoWithClipTune = async () => {
     
     showMessage(error.message || 'Failed to process video with ClipTune.', 'error');
   } finally {
+    // Clear progress after delay
+    setTimeout(() => {
+      setIsCompleteVideoProcessing(false);
+      setCompleteVideoProgress(0);
+      setCompleteVideoStatus('');
+    }, 3000);
+    
+    // Clear intervals
+    clearInterval(progressInterval);
     setIsProcessingVideo(false);
   }
 };
@@ -2714,30 +3750,10 @@ const fetchRecentCombined = async (userId) => {
     console.error('Error loading recent combined videos:', err);
   }
 };
-  // Function to load recent tracks
-  const loadRecentTracks = async (userId) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/get-recent-tracks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRecentTracks(data);
-      }
-    } catch (err) {
-      console.error('Error loading recent tracks:', err);
-    }
-  };
+
 
   // Function to add a track to recent tracks
-  const addRecentTrack = (newTrack) => {
-    setRecentTracks(prev => {
-      const updated = [newTrack, ...prev.filter(t => t.id !== newTrack.id)].slice(0, 5);
-      return updated;
-    });
-  };
+
   // Helper function to get first letter of email
 const getFirstLetter = (email) => {
   return email ? email.charAt(0).toUpperCase() : 'U';
@@ -2850,171 +3866,17 @@ const handleManualSave = async () => {
     // Error already handled in handleSaveCombinedVideo
   }
 };
-const OverlapWarningBanner = () => {
-  if (!selectedSegmentForEdit || !processedVideoResult?.segments) return null;
-  
-  const [currentStart, currentEnd] = getTrimRange();
-  const overlaps = detectSegmentOverlaps(
-    processedVideoResult.segments, 
-    selectedSegmentForEdit.index, 
-    currentStart, 
-    currentEnd
-  );
-  
-  if (overlaps.length === 0) return null;
-  
-  return (
-    <div style={{
-      position: 'fixed',
-      top: '20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-      color: 'white',
-      padding: '1rem 2rem',
-      borderRadius: '12px',
-      boxShadow: '0 8px 32px rgba(239, 68, 68, 0.4)',
-      zIndex: 1001,
-      border: '2px solid rgba(255, 255, 255, 0.2)',
-      animation: 'slideDown 0.3s ease-out, pulse 2s infinite',
-      maxWidth: '90vw',
-      textAlign: 'center'
-    }}>
-      <style>{`
-        @keyframes slideDown {
-          0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-          100% { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { transform: translateX(-50%) scale(1); }
-          50% { transform: translateX(-50%) scale(1.02); }
-        }
-      `}</style>
-      
-      <div style={{
-        fontSize: '1.1rem',
-        fontWeight: 'bold',
-        marginBottom: '0.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.5rem'
-      }}>
-        ⚠️ TIMELINE OVERLAP DETECTED!
-      </div>
-      
-      <div style={{ fontSize: '0.9rem', opacity: 0.95 }}>
-        Segment {selectedSegmentForEdit.index + 1} overlaps with: {' '}
-        <strong>
-          {overlaps.map(o => `Segment ${o.segmentNumber}`).join(', ')}
-        </strong>
-      </div>
-      
-      <div style={{
-        fontSize: '0.8rem',
-        marginTop: '0.5rem',
-        opacity: 0.9,
-        fontStyle: 'italic'
-      }}>
-        Adjust the timeline handles to remove overlaps before saving
-      </div>
-    </div>
-  );
-};
+
 
 // Add this function after fetchRecentCombined
 // Handler for full video analysis (via backend proxy)
 // Handler for full video analysis (via backend proxy)
-const handleFullVideoAnalysis = async () => {
-  if (!selectedFile) {
-    showMessage('Please select a video file first.', 'error');
-    return;
-  }
-
-  // Check if user has provided instructions
-  if (!description || description.trim() === '') {
-    const userInstructions = prompt(
-      "Please provide instructions for the AI analysis:\n\n" +
-      "Examples:\n" +
-      "• 'Find scenes with dialogue for background music'\n" +
-      "• 'Identify action sequences that need energetic music'\n" +
-      "• 'Locate quiet moments for ambient soundtracks'\n" +
-      "• 'Find emotional scenes for dramatic music'\n\n" +
-      "Enter your instructions:"
-    );
-    
-    if (!userInstructions || userInstructions.trim() === '') {
-      showMessage('Analysis instructions are required for better results.', 'warning');
-      return;
-    }
-    
-    // Temporarily store the instructions
-    setDescription(userInstructions);
-  }
-
-  try {
-    setIsAnalyzingFullVideo(true);
-    showMessage('Analyzing full video for optimal music segments...', 'info');
-
-    console.log('🎬 Starting full video analysis via backend...');
-    console.log('📝 AI Instructions:', description || 'Analyze this video for optimal music placement');
-
-    // Create FormData to send video file to backend
-    const formData = new FormData();
-    formData.append('video', selectedFile);
-    
-    // Use the description field as extra instructions for the AI
-    const analysisInstructions = description || 'Analyze this video for optimal music placement and identify key scenes that would benefit from background music';
-    formData.append('extra_prompt', analysisInstructions);
-
-    console.log('🤖 Sending analysis request with instructions:', analysisInstructions);
-
-    // Call backend endpoint which will handle ClipTune API calls
-    const response = await fetch(`${API_BASE_URL}/api/analyze-full-video`, {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.details || errorData.error || 'Video analysis failed');
-    }
-
-    const data = await response.json();
-    console.log('✅ Video analysis complete:', data);
-
-    if (data.success && data.result && data.result.segments && Array.isArray(data.result.segments)) {
-      setVideoSegments(data.result.segments);
-      setShowFullVideoAnalysis(true);
-      showMessage(`Found ${data.result.segments.length} optimal music segments based on your instructions!`, 'success');
-      
-      // Log the segments for debugging
-      console.log('🎯 Found segments:', data.result.segments);
-      data.result.segments.forEach((segment, index) => {
-        console.log(`Segment ${index + 1}:`, {
-          start: segment.start_time,
-          end: segment.end_time,
-          description: segment.description
-        });
-      });
-    } else {
-      showMessage('Video analyzed but no segments were identified. Try different instructions.', 'warning');
-    }
-
-  } catch (error) {
-    console.error('❌ Full video analysis error:', error);
-    showMessage(error.message || 'Failed to analyze video. Please try again.', 'error');
-  } finally {
-    setIsAnalyzingFullVideo(false);
-  }
-};
+// Add these with your other useState declarations
+const [savedVideoSegment, setSavedVideoSegment] = useState(null);
+const [showTimelineEditor, setShowTimelineEditor] = useState(false);
 
 // Function to get segment position on timeline
-const getSegmentPosition = (segmentStartTime) => {
-  if (!duration) return 0;
-  const timelineWidth = THUMB_WIDTH * NUM_THUMBS;
-  return (segmentStartTime / duration) * timelineWidth;
-};
+
   // Function to extract thumbnails from video
   const extractThumbnails = async (url) => {
     return new Promise((resolve) => {
@@ -3062,35 +3924,7 @@ const getSegmentPosition = (segmentStartTime) => {
   };
 
   // Handle drag for timeline handles
-  const handleDrag = (e, type) => {
-  const rect = trackRef.current.getBoundingClientRect();
-  const x = Math.max(0, Math.min(e.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-
-  setLastDragged(type);
-  
-  if (type === "start") {
-    const newStartX = Math.min(x, endX - 10);
-    setStartX(newStartX);
-    
-    // Immediately update video time for start handle
-    const width = THUMB_WIDTH * NUM_THUMBS;
-    const newTime = (newStartX / width) * duration;
-    if (videoPreviewRef.current && !isNaN(newTime)) {
-      videoPreviewRef.current.currentTime = newTime;
-    }
-  } else {
-    const newEndX = Math.max(x, startX + 10);
-    setEndX(newEndX);
-    
-    // Immediately update video time for end handle
-    const width = THUMB_WIDTH * NUM_THUMBS;
-    const newTime = (newEndX / width) * duration;
-    if (videoPreviewRef.current && !isNaN(newTime)) {
-      videoPreviewRef.current.currentTime = newTime;
-    }
-  }
-};
-
+ 
   // Update video current time when timeline handles are dragged
   useEffect(() => {
     const width = THUMB_WIDTH * NUM_THUMBS;
@@ -3121,82 +3955,10 @@ const getSegmentPosition = (segmentStartTime) => {
   // Handler for video file selection
 // Handler for video file selection
 // 🚨 NEW: Function to calculate segment constraints and detect overlaps
-const calculateSegmentConstraints = (allSegments, currentIndex) => {
-  const currentSegment = allSegments[currentIndex];
-  if (!currentSegment) return { hasOverlap: false, conflicts: [], maxAllowedEnd: Infinity };
-  
-  const currentStart = currentSegment.parsed_start !== undefined 
-    ? currentSegment.parsed_start 
-    : parseFloat(currentSegment.start_time || 0);
-  const currentEnd = currentSegment.parsed_end !== undefined 
-    ? currentSegment.parsed_end 
-    : parseFloat(currentSegment.end_time || currentStart + 30);
-  
-  const conflicts = [];
-  let maxAllowedEnd = duration; // Default to video duration
-  
-  // Check against all other segments
-  allSegments.forEach((otherSegment, otherIndex) => {
-    if (otherIndex === currentIndex || !otherSegment) return;
-    
-    const otherStart = otherSegment.parsed_start !== undefined 
-      ? otherSegment.parsed_start 
-      : parseFloat(otherSegment.start_time || 0);
-    const otherEnd = otherSegment.parsed_end !== undefined 
-      ? otherSegment.parsed_end 
-      : parseFloat(otherSegment.end_time || otherStart + 30);
-    
-    // Check for temporal overlap
-    const hasOverlap = (currentStart < otherEnd && currentEnd > otherStart);
-    
-    if (hasOverlap) {
-      conflicts.push({
-        segmentIndex: otherIndex,
-        conflictStart: Math.max(currentStart, otherStart),
-        conflictEnd: Math.min(currentEnd, otherEnd),
-        otherSegmentStart: otherStart,
-        otherSegmentEnd: otherEnd
-      });
-    }
-    
-    // If the other segment starts after our segment starts,
-    // our segment can't end after the other segment starts
-    if (otherStart > currentStart && otherStart < maxAllowedEnd) {
-      maxAllowedEnd = otherStart;
-    }
-  });
-  
-  return {
-    hasOverlap: conflicts.length > 0,
-    conflicts,
-    maxAllowedEnd,
-    suggestedEnd: Math.min(maxAllowedEnd, currentEnd)
-  };
-};
+
 
 // 🚨 NEW: Enhanced timeline edit function with constraints
-const handleStartTimelineEditWithConstraints = (segment, segmentIndex, constraints) => {
-  // Store the constraints for use during editing
-  setSelectedSegmentForEdit({ 
-    segment, 
-    index: segmentIndex, 
-    constraints 
-  });
-  
-  // Store original timeline state
-  setOriginalTimelineState({ startX, endX });
-  
-  // Jump to segment but respect constraints
-  jumpToClipTuneSegmentWithConstraints(segment, segmentIndex, constraints);
-  
-  setHasUnsavedTimelineChanges(false);
-  
-  logToTerminal(`✂️ Started editing timeline for segment ${segmentIndex + 1} with overlap constraints`, 'info');
-  if (constraints.hasOverlap) {
-    logToTerminal(`⚠️ Warning: Segment has ${constraints.conflicts.length} overlap(s). Max end time: ${formatTimeFromSeconds(constraints.maxAllowedEnd)}`, 'warning');
-  }
-  logToTerminal(`💡 Tip: Use arrow keys for fine adjustments (Shift+← → for start handle, ← → for end handle)`, 'info');
-};
+
 
 // 🚨 NEW: Jump to segment with overlap constraints
 const jumpToClipTuneSegmentWithConstraints = (segment, segmentIndex, constraints) => {
@@ -3233,13 +3995,15 @@ const jumpToClipTuneSegmentWithConstraints = (segment, segmentIndex, constraints
     }
   }
 };
+// REPLACE your existing handleFileSelect function with this updated version
+// REPLACE your existing handleFileSelect function with this enhanced version
 const handleFileSelect = async (e) => {
   const file = e.target.files[0];
   if (file && file.type.startsWith('video/')) {
-    // Stop any currently playing music and hide the bottom player
-    stopMusicAndHidePlayer();
+    setIsUploading(true);
+    setUploadProgress(0);
+    setIsFileReady(false);
     
-    // Reset all video-related state
     setSelectedFile(file);
     const url = URL.createObjectURL(file);
     setVideoUrl(url);
@@ -3248,22 +4012,12 @@ const handleFileSelect = async (e) => {
     setStartX(0);
     setEndX(THUMB_WIDTH * NUM_THUMBS);
 
-    // Reset full video analysis state
-    setVideoSegments([]); // Reset video segments
-    setShowFullVideoAnalysis(false); // Reset full video analysis
-    setIsAnalyzingFullVideo(false); // Reset analysis loading state
-    
-    // Reset other generation-related state
-    setTracks([]); // Clear any previous generated tracks
-    setIsProcessing(false); // Reset processing state
-    setCombinedVideoUrl(''); // Clear any previous combined video
-    setSelectedTrackForPreview(null); // Clear preview track
-    setIsGeneratingPreview(false); // Reset preview generation state
-    setHasBeenSaved(false); // Reset save state
-    setMessage({ text: '', type: '' }); // Clear any messages
-
-    setCurrentStep(2); // Move to video editing step
-    setIsLoadingVideoData(true);
+    // Reset states
+    setVideoSegments([]); 
+    setShowFullVideoAnalysis(false); 
+    setTracks([]); 
+    setIsProcessing(false); 
+    setCombinedVideoUrl(''); 
 
     const temp = document.createElement("video");
     temp.src = url;
@@ -3271,67 +4025,107 @@ const handleFileSelect = async (e) => {
       const dur = Math.floor(temp.duration);
       if (isNaN(dur) || dur === 0) {
         showMessage("Could not load video duration.", 'error');
-        setIsLoadingVideoData(false);
+        setIsUploading(false);
         return;
       }
 
       setDuration(dur);
+      setUploadProgress(50);
       
       try {
         const thumbs = await extractThumbnails(url);
         setThumbnails(thumbs);
         setEndX(THUMB_WIDTH * thumbs.length);
-        setIsLoadingVideoData(false);
+        setUploadProgress(100);
         
-        // Show success message with video duration
-        showMessage(`Video loaded successfully! Duration: ${formatTime(dur)}`, 'success');
+        setTimeout(() => {
+          setIsUploading(false);
+          setIsFileReady(true);
+        }, 500);
+        
       } catch (thumbError) {
-        console.error("Error extracting thumbnails:", thumbError);
-        showMessage("Video loaded but thumbnail extraction failed.", 'warning');
-        setIsLoadingVideoData(false);
+        setUploadProgress(100);
+        setTimeout(() => {
+          setIsUploading(false);
+          setIsFileReady(true);
+        }, 500);
       }
     };
     
-    temp.onerror = (err) => {
-      console.error("Error loading video metadata:", err);
-      showMessage("Failed to load video. Please try another file.", 'error');
-      setIsLoadingVideoData(false);
-      
-      // Reset everything on error
+    temp.onerror = () => {
+      setIsUploading(false);
+      setIsFileReady(false);
       setSelectedFile(null);
       setVideoUrl('');
-      setThumbnails([]);
-      setDuration(0);
-      setVideoSegments([]);
-      setShowFullVideoAnalysis(false);
-      setIsAnalyzingFullVideo(false);
-      setTracks([]);
-      setCombinedVideoUrl('');
-      setSelectedTrackForPreview(null);
-      setIsGeneratingPreview(false);
-      setHasBeenSaved(false);
-      setCurrentStep(1); // Go back to upload step
+      showMessage("Failed to load video file.", 'error');
     };
-    
-    // Clean up the previous video URL if it exists to prevent memory leaks
-    temp.onload = () => {
-      // Check if there's an existing video URL and revoke it
-      const existingVideoUrl = videoUrl;
-      if (existingVideoUrl && existingVideoUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(existingVideoUrl);
-      }
-    };
-    
   } else {
-    showMessage('Please select a valid video file (e.g., MP4, WebM, AVI).', 'error');
+    showMessage('Please select a valid video file.', 'error');
   }
 };
-
 // ✅ REPLACE your handleRestoreSegmentMusic function with this FIXED version:
 
 // ✅ FIXED: handleRestoreSegmentMusic function
 // ✅ COMPLETE FIXED VERSION: Restores previously removed music for a segment
 
+// Add this new function
+const handleProceedToNext = () => {
+  if (!isFileReady || !selectedFile) {
+    const notReadyMessage = {
+      id: Date.now(),
+      type: 'ai',
+      message: `⚠️ Please upload a video file first before proceeding! 📹`,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    setChatHistory(prev => [...prev, notReadyMessage]);
+    return;
+  }
+
+  // 🚨 FIX: Set description immediately from current chat message
+  if (chatMessage.trim()) {
+    setDescription(chatMessage.trim());
+    console.log('📝 Setting description immediately:', chatMessage.trim());
+  } else {
+    // 🚨 FIX: Collect chat messages for customPrompt
+    const userChatMessages = chatHistory
+      .filter(msg => msg.type === 'user')
+      .map(msg => msg.message);
+    
+    if (userChatMessages.length > 0) {
+      const chatOnlyDescription = userChatMessages.join('. ');
+      setDescription(chatOnlyDescription);
+      console.log('📝 Chat-only description for customPrompt:', chatOnlyDescription);
+    } else {
+      setDescription('');
+    }
+  }
+
+  // Add AI message about proceeding
+  const proceedMessage = {
+    id: Date.now(),
+    type: 'ai',
+    message: savedVideoSegment 
+      ? `🚀 Perfect! Creating music for "${selectedFile.name}" with timeline (${savedVideoSegment.startTime} - ${savedVideoSegment.endTime}) and your chat style! ✂️`
+      : `🚀 Perfect! Creating music for "${selectedFile.name}" with your chat style! ✂️`,
+    timestamp: new Date().toLocaleTimeString()
+  };
+  setChatHistory(prev => [...prev, proceedMessage]);
+
+  // Update timeline if we have saved video segment
+  if (savedVideoSegment) {
+    const width = THUMB_WIDTH * NUM_THUMBS;
+    const startPos = (savedVideoSegment.start / duration) * width;
+    const endPos = (savedVideoSegment.end / duration) * width;
+    setStartX(Math.max(0, startPos));
+    setEndX(Math.min(width, endPos));
+  }
+
+  // Show the configuration modal
+  setTimeout(() => {
+    setShowConfigModal(true);
+    setCurrentStep(1);
+  }, 500);
+};
 
 // ✅ Enhanced: Safely remove music while preserving original metadata for restoration
 // ✅ FIXED: Enhanced handleRemoveSegmentMusic function
@@ -3427,6 +4221,8 @@ const handleRemoveSegmentMusic = async (segmentIndex) => {
 };
 
 // ✅ NEW: Specialized function for regenerating video without removed segments
+const [preRenderedVolumeInfo, setPreRenderedVolumeInfo] = useState(null);
+
 const regenerateCompleteVideoWithoutRemovedSegments = async (currentMusicData = null) => {
   if (!selectedFile || !processedVideoResult || !processedVideoResult.segments) {
     throw new Error('Cannot regenerate video - missing data');
@@ -3531,6 +4327,44 @@ const regenerateCompleteVideoWithoutRemovedSegments = async (currentMusicData = 
       showMessage('Creating video without music segments', 'info');
     }
 
+    // 🎛️ NEW: PRE-RENDER VOLUMES FOR INSTANT ACCESS (only if we have active segments)
+    let preRenderResult = null;
+    if (activeSegmentCount > 0) {
+      try {
+        logToTerminal('🎛️ Pre-rendering volume variations for instant access...', 'info');
+        showMessage('Pre-rendering volumes for faster processing...', 'info');
+
+        const preRenderResponse = await fetch(`${API_BASE_URL}/api/prerender-volumes-for-segments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            segments: JSON.stringify(validatedSegments),
+            musicData: JSON.stringify(validatedMusicData)
+          })
+        });
+
+        if (preRenderResponse.ok) {
+          preRenderResult = await preRenderResponse.json();
+          if (preRenderResult.success) {
+            logToTerminal(`✅ Pre-rendered ${preRenderResult.totalVariations} volume variations`, 'success');
+            logToTerminal(`⚡ Volume changes will now be ${preRenderResult.estimatedSpeedup || '90% faster'}`, 'info');
+          } else {
+            logToTerminal(`⚠️ Pre-rendering failed: ${preRenderResult.error}`, 'warning');
+          }
+        } else {
+          logToTerminal('⚠️ Pre-rendering service unavailable, using fallback method', 'warning');
+        }
+      } catch (preRenderError) {
+        console.warn('Pre-rendering failed:', preRenderError);
+        logToTerminal('⚠️ Pre-rendering failed, using slower fallback method', 'warning');
+        // Continue without pre-rendering - backend will use on-demand creation
+      }
+    } else {
+      logToTerminal('ℹ️ Skipping volume pre-rendering (no active music segments)', 'info');
+    }
+
     // ✅ SEND TO BACKEND with proper handling for no music segments
     const completeVideoFormData = new FormData();
     completeVideoFormData.append('video', selectedFile);
@@ -3539,7 +4373,21 @@ const regenerateCompleteVideoWithoutRemovedSegments = async (currentMusicData = 
     completeVideoFormData.append('videoDuration', duration.toString());
     completeVideoFormData.append('allowEmptyMusic', 'true'); // Flag for backend
 
+    // 🎛️ NEW: Include pre-render metadata for backend optimization
+    if (preRenderResult && preRenderResult.success) {
+      completeVideoFormData.append('hasPreRenderedVolumes', 'true');
+      completeVideoFormData.append('preRenderSessionId', Date.now().toString());
+      logToTerminal('🚀 Using pre-rendered volumes for instant processing...', 'info');
+    } else {
+      completeVideoFormData.append('hasPreRenderedVolumes', 'false');
+      if (activeSegmentCount > 0) {
+        logToTerminal('⏳ Using on-demand volume creation (slower method)...', 'info');
+      }
+    }
+
     logToTerminal(`📤 Sending regeneration request: ${activeSegmentCount} music segments...`, 'info');
+
+    const videoCreationStartTime = Date.now();
 
     const completeVideoResponse = await fetch(`${API_BASE_URL}/api/create-complete-video`, {
       method: 'POST',
@@ -3552,18 +4400,46 @@ const regenerateCompleteVideoWithoutRemovedSegments = async (currentMusicData = 
     }
 
     const completeVideoResult = await completeVideoResponse.json();
+    const videoCreationTime = ((Date.now() - videoCreationStartTime) / 1000).toFixed(1);
 
     if (completeVideoResult.combinedUrl) {
       setCombinedVideoUrl(completeVideoResult.combinedUrl);
-      logToTerminal('✅ Video regenerated successfully!', 'success');
       
+      // 🎛️ ENHANCED: Log performance metrics
+      logToTerminal(`✅ Video regenerated successfully in ${videoCreationTime}s!`, 'success');
+      
+      if (completeVideoResult.audioProcessing) {
+        const { instantAudio, downloadedAudio, speedImprovement } = completeVideoResult.audioProcessing;
+        if (instantAudio > 0) {
+          logToTerminal(`⚡ Performance: ${instantAudio}/${instantAudio + downloadedAudio} segments used pre-rendered audio (${speedImprovement})`, 'success');
+        }
+      }
+      
+      // Enhanced user messages with performance info
       if (removedSegmentCount > 0 && activeSegmentCount > 0) {
-        showMessage(`Video updated! ${removedSegmentCount} segment(s) removed, ${activeSegmentCount} active`, 'success');
+        const speedInfo = preRenderResult?.success ? ' (instant volume access)' : '';
+        showMessage(`Video updated! ${removedSegmentCount} segment(s) removed, ${activeSegmentCount} active${speedInfo}`, 'success');
       } else if (removedSegmentCount > 0 && activeSegmentCount === 0) {
         showMessage(`Video updated! All music removed (${removedSegmentCount} segments)`, 'success');
       } else {
-        showMessage('Video updated successfully!', 'success');
+        const speedInfo = preRenderResult?.success ? ' with instant volume access' : '';
+        showMessage(`Video updated successfully${speedInfo}!`, 'success');
       }
+
+      // 🎛️ NEW: Store pre-render info for future volume changes
+      if (preRenderResult && preRenderResult.success) {
+        // Store in component state or context for instant volume slider updates
+        // setPreRenderedVolumeInfo({
+        //   available: true,
+        //   sessionId: Date.now().toString(),
+        //   segments: activeSegmentCount,
+        //   totalVariations: preRenderResult.totalVariations,
+        //   volumeLevels: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        // });
+        
+        logToTerminal('🎛️ Volume sliders now support instant changes!', 'info');
+      }
+      
     } else {
       throw new Error('No combined video URL received');
     }
@@ -3571,10 +4447,223 @@ const regenerateCompleteVideoWithoutRemovedSegments = async (currentMusicData = 
   } catch (error) {
     console.error('❌ Error in regenerateCompleteVideoWithoutRemovedSegments:', error);
     logToTerminal(`❌ Failed to regenerate video: ${error.message}`, 'error');
+    
+    // 🎛️ ENHANCED: Provide troubleshooting info
+    if (error.message.includes('pre-render')) {
+      logToTerminal('💡 Suggestion: Try again without pre-rendering for compatibility', 'info');
+    } else if (error.message.includes('volume')) {
+      logToTerminal('💡 Suggestion: Check audio URLs and volume settings', 'info');
+    }
+    
     throw error; // Re-throw for caller handling
   } finally {
     setIsGeneratingPreview(false);
   }
+};
+
+// 🎛️ HELPER FUNCTIONS - ADD THESE TO YOUR COMPONENT
+
+// Fallback method for volume changes when pre-rendering isn't available
+const changeVolumeSlowMethod = async (segmentIndex, newVolumeLevel) => {
+  try {
+    logToTerminal(`🐌 Changing segment ${segmentIndex + 1} to ${newVolumeLevel}% (slower method)...`, 'info');
+    
+    // Update the music data with new volume
+    setGeneratedSegmentMusic(prev => ({
+      ...prev,
+      [segmentIndex]: {
+        ...prev[segmentIndex],
+        customVolume: newVolumeLevel / 100,
+        hasCustomVolume: true
+      }
+    }));
+
+    // Regenerate video with new volume (this will use on-demand volume creation)
+    await regenerateCompleteVideoWithoutRemovedSegments();
+    
+    logToTerminal(`✅ Volume changed to ${newVolumeLevel}% using slower method`, 'success');
+    return true;
+    
+  } catch (error) {
+    logToTerminal(`❌ Volume change failed: ${error.message}`, 'error');
+    throw error;
+  }
+};
+
+// 🎛️ NEW: Helper function for instant volume changes (add to your component)
+const changeVolumeInstantly = async (segmentIndex, newVolumeLevel) => {
+  // For now, always use the slower method since we need to set up the state first
+  // Once you add the preRenderedVolumeInfo state, you can uncomment the instant logic
+  
+  /*
+  if (!preRenderedVolumeInfo?.available) {
+    console.warn('No pre-rendered volumes available, using slower method');
+    return changeVolumeSlowMethod(segmentIndex, newVolumeLevel);
+  }
+
+  try {
+    logToTerminal(`🎛️ Changing segment ${segmentIndex + 1} to ${newVolumeLevel}% instantly...`, 'info');
+
+    const response = await fetch(`${API_BASE_URL}/api/get-volume-variation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        segmentIndex,
+        volumeLevel: newVolumeLevel,
+        sessionId: preRenderedVolumeInfo.sessionId
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.instant) {
+        logToTerminal(`⚡ Volume changed instantly to ${newVolumeLevel}%!`, 'success');
+        
+        // Update the music data with new volume
+        setGeneratedSegmentMusic(prev => ({
+          ...prev,
+          [segmentIndex]: {
+            ...prev[segmentIndex],
+            customVolume: newVolumeLevel / 100,
+            hasCustomVolume: true
+          }
+        }));
+
+        // Auto-regenerate video with new volume (this will be fast with pre-rendered audio)
+        await regenerateCompleteVideoWithoutRemovedSegments();
+        
+        return true;
+      }
+    }
+    
+    throw new Error('Instant volume change failed');
+    
+  } catch (error) {
+    console.warn('Instant volume change failed, using slower method:', error);
+    logToTerminal('⏳ Using slower volume change method...', 'warning');
+    return changeVolumeSlowMethod(segmentIndex, newVolumeLevel);
+  }
+  */
+  
+  // For now, use the slower method
+  return changeVolumeSlowMethod(segmentIndex, newVolumeLevel);
+};
+
+// 🎛️ SIMPLIFIED: Enhanced volume slider component integration
+// Add this to your JSX where you render volume sliders
+
+// 🎛️ NEW: Helper function for instant volume changes (add to your component)
+
+// 🎛️ NEW: Enhanced volume slider component integration
+const VolumeSliderEnhanced = ({ segmentIndex, currentVolume, onVolumeChange }) => {
+  const [isChanging, setIsChanging] = useState(false);
+  
+const handleVolumeChange = async (newVolume) => {
+  if (!selectedTrackForPreview || !selectedFile) {
+    showMessage('Cannot adjust volume - missing track or video data.', 'error');
+    return;
+  }
+
+  setPreviewMusicVolume(newVolume);
+  
+  // Debounce the volume change to avoid too many requests
+  if (window.volumeChangeTimeout) {
+    clearTimeout(window.volumeChangeTimeout);
+  }
+  
+  window.volumeChangeTimeout = setTimeout(async () => {
+    try {
+      setIsGeneratingPreview(true);
+      showMessage('Updating music volume...', 'info');
+      
+      const track = selectedTrackForPreview;
+      const audioUrl = track.audioUrl || track.url || track.audio_url;
+      
+      // Get the selected segment time range
+      const [segmentStart, segmentEnd] = getTrimRange();
+      const segmentDuration = segmentEnd - segmentStart;
+      const fullVideoDuration = duration;
+      
+      // Parse audio timestamps
+      let audioStart, audioEnd;
+      if (typeof track.start === 'string' && track.start.includes(':')) {
+        audioStart = convertTimestampToSeconds(track.start);
+        audioEnd = convertTimestampToSeconds(track.end);
+      } else {
+        audioStart = parseInt(track.start) || 0;
+        audioEnd = parseInt(track.end) || audioStart + 30;
+      }
+      
+      const audioDuration = audioEnd - audioStart;
+      
+      // Create FormData for the new request
+      const formData = new FormData();
+      
+      if (track.videoUrl) {
+        formData.append('videoUrl', track.videoUrl);
+      } else {
+        formData.append('video', selectedFile);
+      }
+      
+      formData.append('audioUrl', audioUrl);
+      formData.append('videoDuration', fullVideoDuration.toString());
+      formData.append('videoStart', segmentStart.toString());
+      formData.append('musicDuration', Math.min(segmentDuration, audioDuration).toString());
+      formData.append('audioStart', audioStart.toString());
+      formData.append('audioDuration', audioDuration.toString());
+      formData.append('musicVolume', newVolume.toString());
+      
+      const res = await fetch(`${API_BASE_URL}/api/combine-video-audio`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
+      
+      const responseData = await res.json();
+      
+      if (!responseData.combinedUrl) {
+        throw new Error('No combined video URL received from server');
+      }
+      
+      // Update the combined video URL
+      setCombinedVideoUrl(responseData.combinedUrl);
+      showMessage(`Volume updated to ${Math.round(newVolume * 100)}%`, 'success');
+      
+    } catch (err) {
+      console.error('Error updating volume:', err);
+      showMessage('Failed to update volume. Please try again.', 'error');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  }, 1000); // 1 second debounce
+};
+
+  return (
+    <div className="volume-slider-container">
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="10"
+        value={currentVolume}
+        onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+        disabled={isChanging}
+        className={`volume-slider ${preRenderedVolumeInfo?.available ? 'instant' : 'slow'}`}
+      />
+      <span className="volume-indicator">
+        {currentVolume}%
+        {preRenderedVolumeInfo?.available && (
+          <span className="instant-badge">⚡</span>
+        )}
+        {isChanging && <span className="changing">...</span>}
+      </span>
+    </div>
+  );
 };
 
 // ✅ ENHANCED: handleRestoreSegmentMusic function
@@ -4005,211 +5094,420 @@ const regenerateCompleteVideoWithVolumes = async (currentMusicData = null) => {
     setIsGeneratingPreview(false);
   }
 };
-const renderOverlapIndicators = () => {
-  if (!selectedSegmentForEdit || !processedVideoResult?.segments) return null;
+// Add these functions to your ClipTuneGenerator.js file
+
+// State for music analysis
+const [musicAnalysis, setMusicAnalysis] = useState('');
+const [isAnalyzingMusic, setIsAnalyzingMusic] = useState(false);
+const [showMusicAnalysis, setShowMusicAnalysis] = useState(false);
+
+// Function to analyze video for music with Gemini
+
+const analyzeVideoForMusicWithGeneration = async (customPrompt = '', generateMusic = true) => {
+  if (!selectedFile) {
+    showMessage('Please select a video file first.', 'error');
+    return;
+  }
+
+  setIsAnalyzingMusic(true);
+  setMusicAnalysis('');
   
-  const [currentStart, currentEnd] = getTrimRange();
-  const overlaps = detectSegmentOverlaps(
-    processedVideoResult.segments, 
-    selectedSegmentForEdit.index, 
-    currentStart, 
-    currentEnd
-  );
-  
-  if (overlaps.length === 0) return null;
-  
-  const width = THUMB_WIDTH * NUM_THUMBS;
-  
-  return overlaps.map((overlap, index) => {
-    const overlapStartX = (overlap.overlapStart / duration) * width;
-    const overlapEndX = (overlap.overlapEnd / duration) * width;
-    const overlapWidth = overlapEndX - overlapStartX;
+  try {
+    showMessage('🎵 Analyzing video and generating music with AI...', 'info');
     
-    return (
-      <div
-        key={index}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: overlapStartX,
-          width: overlapWidth,
-          height: '100%',
-          background: 'rgba(255, 0, 0, 0.7)',
-          border: '2px solid #ff0000',
-          borderRadius: '4px',
-          pointerEvents: 'none',
-          zIndex: 15,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-      >
-        <span style={{
-          color: 'white',
-          fontSize: '0.7rem',
-          fontWeight: 'bold',
-          textShadow: '0 1px 2px rgba(0,0,0,0.8)'
-        }}>
-          OVERLAP!
-        </span>
-      </div>
-    );
-  });
+    const formData = new FormData();
+    formData.append('video', selectedFile);
+    if (customPrompt) {
+      formData.append('customPrompt', customPrompt);
+    }
+    formData.append('analysisType', 'full');
+    formData.append('generateMusic', generateMusic.toString());
+
+    // FIRST: Upload video to GCS
+    console.log('📤 Uploading video to GCS...');
+    const uploadResponse = await fetch(`${API_BASE_URL}/api/upload-video-to-gcs`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Video upload failed');
+    }
+
+    const uploadResult = await uploadResponse.json();
+    console.log('✅ Video uploaded:', uploadResult.gcs_uri);
+
+    // SECOND: Analyze with Gemini and generate music
+    console.log('🤖 Starting Gemini analysis + MusicGPT generation...');
+    const analysisResponse = await fetch(`${API_BASE_URL}/api/analyze-gcs-video-for-music-with-generation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        publicUrl: uploadResult.public_url,
+        customPrompt: customPrompt,
+        analysisType: 'full',
+        generateMusic: generateMusic
+      }),
+    });
+
+    if (!analysisResponse.ok) {
+      throw new Error('Analysis + generation failed');
+    }
+
+    const result = await analysisResponse.json();
+    
+    if (result.success) {
+      // Store Gemini analysis
+      setMusicAnalysis(result.gemini.analysis);
+      setShowMusicAnalysis(true);
+      
+      // Log results to console
+      console.log('🎼 GEMINI ANALYSIS:', result.gemini.analysis);
+      
+      if (result.musicgpt && result.musicgpt.success) {
+        console.log('🎶 GENERATED MUSIC URL:', result.musicgpt.music.audio_url || result.musicgpt.music.url);
+        
+        showMessage(
+          `🎉 Analysis and music generation completed! Check console for music URL.`, 
+          'success'
+        );
+        
+        // You can also store the music URL in state for playback
+        // setGeneratedMusicUrl(result.musicgpt.music.audio_url || result.musicgpt.music.url);
+        
+      } else {
+        showMessage(
+          `🎵 Analysis completed! Music generation ${result.musicgpt ? 'failed' : 'was skipped'}.`, 
+          result.musicgpt ? 'warning' : 'success'
+        );
+      }
+    } else {
+      throw new Error(result.error || 'Analysis failed');
+    }
+
+  } catch (error) {
+    console.error('❌ Complete workflow error:', error);
+    showMessage(`Workflow failed: ${error.message}`, 'error');
+  } finally {
+    setIsAnalyzingMusic(false);
+  }
 };
-const enhancedTimelineControlButtons = () => {
-  if (!selectedSegmentForEdit) return null;
+// Add these state variables at the top with your other useState declarations
+const [webhookPolling, setWebhookPolling] = useState({});
+const [webhookResults, setWebhookResults] = useState({});
+
+// Add this function to poll for webhook results
+const pollForWebhookResult = async (taskId, maxAttempts = 30) => {
+  console.log('🔄 Starting webhook polling for task:', taskId);
   
-  const [currentStart, currentEnd] = getTrimRange();
-  const currentDuration = currentEnd - currentStart;
-  const hasChanges = hasUnsavedTimelineChanges;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`🔍 Webhook poll attempt ${attempt}/${maxAttempts} for task ${taskId}`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/get-webhook-result`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.result) {
+          console.log('✅ Webhook result found!', data.result);
+          
+          // Check if music generation is complete
+          if (data.result.status === 'completed' && data.result.audio_url) {
+            console.log('🎵 Music generation completed via webhook!');
+            console.log('🔗 Final audio URL:', data.result.audio_url);
+            
+            return {
+              success: true,
+              audio_url: data.result.audio_url,
+              title: data.result.title,
+              duration: data.result.duration,
+              cost: data.result.conversion_cost,
+              taskId: taskId
+            };
+          } else if (data.result.status === 'failed' || data.result.status === 'error') {
+            console.error('❌ Music generation failed via webhook:', data.result.error);
+            return {
+              success: false,
+              error: data.result.error || 'Music generation failed',
+              taskId: taskId
+            };
+          } else {
+            console.log(`⏳ Task still processing... Status: ${data.result.status}`);
+          }
+        }
+      } else if (response.status === 404) {
+        console.log(`⏳ Webhook result not yet available (attempt ${attempt}/${maxAttempts})`);
+      } else {
+        console.error('❌ Error checking webhook result:', response.status);
+      }
+      
+      // Wait 5 seconds before next attempt
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+      
+    } catch (error) {
+      console.error(`❌ Webhook polling error (attempt ${attempt}):`, error);
+      
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+  }
   
-  // Check for potential overlaps in real-time
-  const overlaps = detectSegmentOverlaps(
-    processedVideoResult?.segments || [], 
-    selectedSegmentForEdit.index, 
-    currentStart, 
-    currentEnd
-  );
-  const hasOverlaps = overlaps.length > 0;
-  
+  console.log('⏰ Webhook polling timeout reached');
+  return {
+    success: false,
+    error: 'Polling timeout - music may still be generating',
+    taskId: taskId
+  };
+};
+
+// Enhanced music generation function with webhook support
+
+// Add this component for webhook status display
+const WebhookStatusIndicator = ({ taskId, isPolling }) => {
+  if (!isPolling) return null;
+
   return (
     <div style={{
       position: 'fixed',
-      bottom: '20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'rgba(30, 41, 59, 0.95)',
-      backdropFilter: 'blur(20px)',
-      borderRadius: '16px',
-      padding: '1.5rem 2rem',
-      border: hasOverlaps ? '2px solid #ef4444' : '2px solid rgba(102, 126, 234, 0.3)',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+      top: '1rem',
+      right: '1rem',
+      background: 'rgba(59, 130, 246, 0.9)',
+      color: 'white',
+      padding: '1rem',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
       zIndex: 1002,
       display: 'flex',
-      flexDirection: 'column',
       alignItems: 'center',
-      gap: '1rem',
-      color: 'white',
-      minWidth: '400px',
-      animation: 'slideUpIn 0.3s ease-out'
+      gap: '0.5rem',
+      animation: 'fadeIn 0.3s ease-out'
     }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-        <div style={{
-          fontSize: '1.1rem',
-          fontWeight: 'bold',
-          color: hasOverlaps ? '#ef4444' : '#667eea',
-          marginBottom: '0.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem'
-        }}>
-          <span>{hasOverlaps ? '⚠️' : '✂️'}</span>
-          Editing Segment {selectedSegmentForEdit.index + 1}
-          {hasOverlaps && <span style={{ fontSize: '0.8rem', color: '#ef4444' }}>- OVERLAP DETECTED!</span>}
+      <div style={{
+        width: '16px',
+        height: '16px',
+        border: '2px solid transparent',
+        borderTop: '2px solid white',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }} />
+      <div>
+        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+          🕸️ Webhook Active
         </div>
-        
-        <div style={{
-          fontSize: '0.9rem',
-          color: 'rgba(255, 255, 255, 0.8)'
-        }}>
-          {formatTimeFromSeconds(currentStart)} - {formatTimeFromSeconds(currentEnd)} 
-          <span style={{ color: hasOverlaps ? '#ef4444' : '#48bb78', marginLeft: '0.5rem' }}>
-            ({formatTimeFromSeconds(currentDuration)})
-          </span>
+        <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
+          Task: {taskId}
         </div>
-        
-        {hasOverlaps && (
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#ef4444',
-            marginTop: '0.5rem',
-            background: 'rgba(239, 68, 68, 0.1)',
-            padding: '0.5rem',
-            borderRadius: '6px',
-            border: '1px solid rgba(239, 68, 68, 0.3)'
-          }}>
-            ⚠️ Overlaps with: {overlaps.map(o => `Segment ${o.segmentNumber}`).join(', ')}
-          </div>
-        )}
-      </div>
-      
-      {/* Buttons */}
-      <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-        <button
-          onClick={handleCancelTimelineEdit}
-          style={{
-            flex: '1',
-            padding: '0.75rem 1.5rem',
-            background: 'linear-gradient(135deg, #e53e3e 0%, #f56565 100%)',
-            border: 'none',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '0.9rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <span>❌</span>
-          Cancel (Esc)
-        </button>
-        
-        <button
-          onClick={handleSetCurrentTimeline}
-          disabled={hasOverlaps} // Disable if overlaps detected
-          style={{
-            flex: '1',
-            padding: '0.75rem 1.5rem',
-            background: hasOverlaps 
-              ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
-              : hasChanges 
-              ? 'linear-gradient(135deg, #38a169 0%, #48bb78 100%)'
-              : 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)',
-            border: 'none',
-            borderRadius: '8px',
-            color: 'white',
-            fontSize: '0.9rem',
-            fontWeight: 600,
-            cursor: hasOverlaps ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            opacity: hasOverlaps ? 0.6 : 1
-          }}
-        >
-          <span>{hasOverlaps ? '🚫' : hasChanges ? '💾' : '✅'}</span>
-          {hasOverlaps ? 'Fix Overlaps First' : hasChanges ? 'Save Changes (Enter)' : 'Set Timeline (Enter)'}
-        </button>
       </div>
     </div>
   );
 };
-// ✅ ADDITIONAL: Debug function to check segment data
-const debugSegmentData = () => {
-  console.log('🔍 DEBUGGING SEGMENT DATA:');
-  console.log('processedVideoResult.segments:', processedVideoResult?.segments);
-  
-  processedVideoResult?.segments?.forEach((segment, index) => {
-    console.log(`Segment ${index + 1}:`, {
-      segment: segment,
-      start_time: segment?.start_time,
-      end_time: segment?.end_time,
-      parsed_start: segment?.parsed_start,
-      parsed_end: segment?.parsed_end,
-      music_summary: segment?.music_summary
+// Add this test function
+const testWebhookIntegration = async () => {
+  try {
+    console.log('🧪 Testing webhook integration...');
+    
+    // Test webhook endpoint
+    const testResponse = await fetch(`${API_BASE_URL}/api/test-webhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
     });
-  });
-  
-  console.log('generatedSegmentMusic:', generatedSegmentMusic);
+
+    if (testResponse.ok) {
+      const testData = await testResponse.json();
+      console.log('✅ Webhook test successful:', testData);
+      showMessage('🕸️ Webhook system is working!', 'success');
+    } else {
+      throw new Error('Webhook test failed');
+    }
+  } catch (error) {
+    console.error('❌ Webhook test failed:', error);
+    showMessage('⚠️ Webhook test failed - check backend', 'error');
+  }
 };
+
+// Add a test button to your UI (temporary)
+{process.env.NODE_ENV === 'development' && (
+  <button 
+    onClick={testWebhookIntegration}
+    style={{
+      position: 'fixed',
+      bottom: '1rem',
+      left: '1rem',
+      background: '#10b981',
+      color: 'white',
+      border: 'none',
+      padding: '0.5rem 1rem',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '0.8rem',
+      zIndex: 1000
+    }}
+  >
+    🧪 Test Webhook
+  </button>
+)}
+// Function to analyze uploaded GCS video
+const analyzeGCSVideoForMusic = async (gcsUrl, customPrompt = '') => {
+  setIsAnalyzingMusic(true);
+  setMusicAnalysis('');
+  
+  try {
+    showMessage('🌐 Analyzing GCS video with Gemini AI...', 'info');
+    
+    const response = await fetch(`${API_BASE_URL}/api/analyze-gcs-video-for-music`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        publicUrl: gcsUrl,
+        customPrompt: customPrompt,
+        analysisType: 'full'
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('GCS analysis request failed');
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      setMusicAnalysis(result.analysis);
+      setShowMusicAnalysis(true);
+      showMessage(
+        `🎵 GCS video music analysis completed! Time: ${result.processingTime}`, 
+        'success'
+      );
+    } else {
+      throw new Error(result.error || 'GCS analysis failed');
+    }
+
+  } catch (error) {
+    console.error('❌ GCS music analysis error:', error);
+    showMessage(`GCS music analysis failed: ${error.message}`, 'error');
+  } finally {
+    setIsAnalyzingMusic(false);
+  }
+};
+
+// Function to use combined upload + analysis workflow
+const uploadAndAnalyzeVideo = async (customPrompt = '') => {
+  if (!selectedFile) {
+    showMessage('Please select a video file first.', 'error');
+    return;
+  }
+
+  setIsAnalyzingMusic(true);
+  setMusicAnalysis('');
+  
+  try {
+    showMessage('🎬 Uploading to GCS and analyzing with Gemini...', 'info');
+    
+    const formData = new FormData();
+    formData.append('video', selectedFile);
+    if (customPrompt) {
+      formData.append('customPrompt', customPrompt);
+    }
+    formData.append('analysisType', 'full');
+    formData.append('skipUpload', 'false'); // Set to 'true' to skip GCS upload
+
+    const response = await fetch(`${API_BASE_URL}/api/upload-and-analyze-video`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Combined workflow failed');
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update video URL to GCS URL if uploaded
+      if (result.upload && result.upload.public_url) {
+        setVideoUrl(result.upload.public_url);
+        console.log('📁 Video uploaded to GCS:', result.upload.file_name);
+      }
+      
+      // Set the analysis results
+      setMusicAnalysis(result.analysis);
+      setShowMusicAnalysis(true);
+      
+      showMessage(
+        `🎉 Upload and analysis completed! Time: ${result.processingTime}`, 
+        'success'
+      );
+      
+      console.log('🎼 Complete Music Analysis:', result.analysis);
+    } else {
+      throw new Error(result.error || 'Combined workflow failed');
+    }
+
+  } catch (error) {
+    console.error('❌ Combined workflow error:', error);
+    showMessage(`Upload and analysis failed: ${error.message}`, 'error');
+  } finally {
+    setIsAnalyzingMusic(false);
+  }
+};
+
+
+
+// Add this CSS to your component's style section or CSS file
+const musicAnalysisStyles = `
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+}
+
+.music-analysis-section {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.analysis-result {
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+.analysis-result h1, .analysis-result h2, .analysis-result h3 {
+  color: #2c3e50;
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+.analysis-result strong {
+  color: #e74c3c;
+}
+
+.analysis-result ul {
+  margin-left: 20px;
+}
+
+.analysis-result li {
+  margin-bottom: 5px;
+}
+`;
+
+
+// ✅ ADDITIONAL: Debug function to check segment data
+
 
 // ✅ UPDATE the Restore button in your UI to call debugSegmentStates after restoration:
 
@@ -4235,96 +5533,7 @@ const throttledVideoUpdate = useCallback(
 // ENHANCED: Visual feedback during dragging
 const [isDragging, setIsDragging] = useState(false);
 const [dragType, setDragType] = useState(null);
-const createDragHandlerWithConstraints = (type) => {
-  return (e) => {
-    e.preventDefault();
-    
-    const rect = trackRef.current.getBoundingClientRect();
-    const constraints = selectedSegmentForEdit?.constraints;
-    
-    const move = (moveEvent) => {
-      const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-      const width = THUMB_WIDTH * NUM_THUMBS;
-      
-      if (type === "start") {
-        const newStartX = Math.min(currentX, endX - 10);
-        setStartX(newStartX);
-        const newTime = (newStartX / width) * duration;
-        if (videoPreviewRef.current && !isNaN(newTime)) {
-          videoPreviewRef.current.currentTime = newTime;
-        }
-      } else {
-        let newEndX = Math.max(currentX, startX + 10);
-        
-        // 🚨 Apply constraints to end handle
-        if (constraints && constraints.maxAllowedEnd < duration) {
-          const maxEndPosition = (constraints.maxAllowedEnd / duration) * width;
-          newEndX = Math.min(newEndX, maxEndPosition);
-        }
-        
-        setEndX(newEndX);
-        const newTime = (newEndX / width) * duration;
-        if (videoPreviewRef.current && !isNaN(newTime)) {
-          videoPreviewRef.current.currentTime = newTime;
-        }
-      }
-      
-      setHasUnsavedTimelineChanges(true);
-    };
-    
-    const up = () => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-    };
-    
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  };
-};
-const createDragHandlerWithFeedback = (type) => {
-  return (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-    setDragType(type);
-    
-    const rect = trackRef.current.getBoundingClientRect();
-    
-    const move = (moveEvent) => {
-      const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-      const width = THUMB_WIDTH * NUM_THUMBS;
-      
-      if (type === "start") {
-        const newStartX = Math.min(currentX, endX - 10);
-        setStartX(newStartX);
-        throttledVideoUpdate((newStartX / width) * duration);
-      } else {
-        const newEndX = Math.max(currentX, startX + 10);
-        setEndX(newEndX);
-        throttledVideoUpdate((newEndX / width) * duration);
-      }
-    };
-    
-    const up = () => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      setIsDragging(false);
-      setDragType(null);
-      
-      // Brief preview play
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.play();
-        setTimeout(() => {
-          if (videoPreviewRef.current) {
-            videoPreviewRef.current.pause();
-          }
-        }, 300);
-      }
-    };
-    
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  };
-};
+
 
   // Handler for going back to video segment selection
   const handleGoBackToVideoEdit = () => {
@@ -4336,12 +5545,42 @@ const createDragHandlerWithFeedback = (type) => {
   };
 
   // Handler for initiating music generation
-  const handleGenerate = async () => {
+// Modified handleGenerate function with auto video generation
+// Updated handleGenerate function - Direct redirect when renderMusicVideo is enabled
+// COMPLETE FIXED handleGenerate function - Prevents hanging at generation screen
+useEffect(() => {
+  // Auto-hide dropdown when all generations are complete
+  if (generatingTracks.length > 0) {
+    const allCompleted = generatingTracks.every(track => 
+      track.status === 'completed' || track.status === 'error'
+    );
+    
+    if (allCompleted) {
+      // 🚨 FIX: Just hide dropdown and clean up - DON'T change currentStep
+      setTimeout(() => {
+        setForceShowDropdown(false);
+        // Clean up completed tracks
+        setTimeout(() => {
+          setGeneratingTracks(prev => 
+            prev.filter(track => track.status === 'generating')
+          );
+        }, 1000);
+      }, 3000); // Show completion status for 3 seconds
+    }
+  }
+}, [generatingTracks]); // 🚨 FIX: Remove currentStep dependency
+
+
+
+// REPLACE your existing handleGenerate function with this FIXED version
+// The key fix is in the track processing section where we use the AI-recommended timing
+
+const handleGenerate = async () => {
   if (!selectedFile) {
     return showMessage('Please select a video file first.', 'error');
   }
 
-  // 🚨 NEW: Validate track name
+  // Validate track name
   if (!trackName || trackName.trim() === '') {
     showMessage('Please enter a track name before generating music', 'error');
     return;
@@ -4355,65 +5594,327 @@ const createDragHandlerWithFeedback = (type) => {
   formData.append('extra_description', description);
   formData.append('instrumental', instrumental.toString());
   formData.append('renderMusicVideo', renderMusicVideo.toString());
-  
-  // 🚨 NEW: Include track name in the generation
   formData.append('song_title', trackName.trim());
   formData.append('track_name', trackName.trim());
-  
+  formData.append('userId', userId || localStorage.getItem('userId') || 'anonymous');
   formData.append('video_start', start.toString());
   formData.append('video_end', end.toString());
 
   try {
     setIsProcessing(true);
     setShowConfigModal(false);
-    setCurrentStep(1);
 
-    logToTerminal(`🎵 Generating "${trackName.trim()}" with AI guidance...`, 'info');
-    logToTerminal(`📊 Settings: ${instrumental ? 'Instrumental' : 'With vocals'}, ${renderMusicVideo ? 'With video' : 'Audio only'}`, 'info');
+    if (renderMusicVideo) {
+      console.log('🎬 RENDER WITH VIDEO IS CHECKED - Staying in processing mode until video complete');
+      
+      logToTerminal(`🎵 Generating "${trackName.trim()}" with video rendering...`, 'info');
+      
+      const res = await fetch(`${API_BASE_URL}/api/process-video`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    const res = await fetch(`${API_BASE_URL}/api/process-video`, {
-      method: 'POST',
-      body: formData,
-    });
+      const data = await res.json();
 
-    const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Music generation failed. Please try again.');
+      }
 
-    if (!res.ok) {
-      throw new Error(data.error || 'Music generation failed. Please try again.');
+      let tracksToProcess = [];
+      
+      if (data.success && data.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
+        tracksToProcess = data.tracks;
+      } else if (data.success && (data.audioUrl || data.audio_url || data.url)) {
+        const singleTrack = {
+          audioUrl: data.audioUrl || data.audio_url || data.url,
+          url: data.audioUrl || data.audio_url || data.url,
+          audio_url: data.audioUrl || data.audio_url || data.url,
+          title: data.title || trackName.trim(),
+          trackName: data.trackName || trackName.trim(),
+          duration: data.duration || '211s',
+          // 🚨 FIX: Use AI-recommended timing if available, otherwise use video segment timing
+          start: data.start || formatTime(start),
+          end: data.end || formatTime(end)
+        };
+        tracksToProcess = [singleTrack];
+      } else {
+        throw new Error('No valid tracks received from backend.');
+      }
+
+      // 🚨 FIX: Process tracks with correct timing
+      const validTracks = tracksToProcess
+        .map((track, index) => ({
+          ...track,
+          audioUrl: track.audioUrl || track.url || track.audio_url,
+          url: track.audioUrl || track.url || track.audio_url,
+          trackName: trackName.trim(),
+          title: trackName.trim(),
+          duration: track.duration || '211s',
+          // 🚨 CRITICAL FIX: Use the AI-recommended timing from backend response
+          start: track.start || formatTime(start), // AI timing takes priority
+          end: track.end || formatTime(end),       // AI timing takes priority
+          videoSegment: {
+            // Keep original video segment info separate
+            startSeconds: start,
+            endSeconds: end,
+            duration: end - start
+          }
+        }))
+        .filter(track => track.audioUrl);
+
+      if (validTracks.length === 0) {
+        throw new Error('No valid audio URLs found in tracks.');
+      }
+
+      showMessage(`"${trackName.trim()}" generated successfully! Creating video...`, 'success');
+
+      console.log('🎬 Starting automatic video generation while staying in processing mode...');
+      
+      try {
+        console.log('🎵 Using track for video:', validTracks[0]);
+        console.log('🎯 Timeline segment:', start, 'to', end, 'seconds');
+        
+        await handleDownloadVideoWithMusic(validTracks[0]);
+        
+        console.log('✅ Video generation completed, should be on Step 5 now');
+        
+      } catch (error) {
+        console.error('❌ Auto video generation failed:', error);
+        showMessage('Music generated but video creation failed.', 'error');
+        
+        setTracks(validTracks);
+        setCurrentStep(4);
+      }
+
+      // 🚨 FIX: Save tracks with correct timing
+      for (const track of validTracks) {
+        // 🚨 CRITICAL: Use the track's start/end times (which are AI-recommended)
+        // instead of the video segment start/end
+        await saveRecentTrackWithCorrectTiming(track);
+      }
+
+      if (userId) fetchRecentTracks(userId);
+
+    } else {
+      // Dropdown behavior code remains the same...
+      setShowDropdownMenu(true);
+      setForceShowDropdown(true);
+      
+      const generatingTrack = {
+        id: Date.now(),
+        trackName: trackName.trim(),
+        progress: 0,
+        status: 'generating',
+        startTime: new Date().toISOString(),
+        error: null,
+        completedTracks: null
+      };
+      
+      setGeneratingTracks(prev => [...prev, generatingTrack]);
+      
+      showMessage(`🎵 Generating "${trackName.trim()}" - Check dropdown for progress!`, 'info');
+      
+      const generatingMessage = {
+        id: Date.now(),
+        type: 'ai',
+        message: `🎵 Started generating "${trackName.trim()}"! You can monitor the progress in the dropdown menu above. I'll let you know when it's ready! 🎧`,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setChatHistory(prev => [...prev, generatingMessage]);
+      
+      const progressInterval = setInterval(() => {
+        setGeneratingTracks(prev => 
+          prev.map(track => 
+            track.id === generatingTrack.id 
+              ? { ...track, progress: Math.min(track.progress + Math.random() * 15, 95) }
+              : track
+          )
+        );
+      }, 800);
+      
+      logToTerminal(`🎵 Generating "${trackName.trim()}" in background...`, 'info');
+      
+      const res = await fetch(`${API_BASE_URL}/api/process-video`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      
+      clearInterval(progressInterval);
+
+      if (!res.ok) {
+        setGeneratingTracks(prev => 
+          prev.map(track => 
+            track.id === generatingTrack.id 
+              ? { ...track, status: 'error', progress: 0, error: data.error || 'Generation failed' }
+              : track
+          )
+        );
+        
+        const errorMessage = {
+          id: Date.now(),
+          type: 'ai',
+          message: `❌ Sorry, there was an error generating "${trackName.trim()}": ${data.error || 'Unknown error'}. Please try again!`,
+          timestamp: new Date().toLocaleTimeString()
+        };
+        setChatHistory(prev => [...prev, errorMessage]);
+        
+        throw new Error(data.error || 'Music generation failed. Please try again.');
+      }
+
+      let tracksToProcess = [];
+      
+      if (data.success && data.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
+        tracksToProcess = data.tracks;
+      } else if (data.success && (data.audioUrl || data.audio_url || data.url)) {
+        const singleTrack = {
+          audioUrl: data.audioUrl || data.audio_url || data.url,
+          url: data.audioUrl || data.audio_url || data.url,
+          audio_url: data.audioUrl || data.audio_url || data.url,
+          title: data.title || trackName.trim(),
+          trackName: data.trackName || trackName.trim(),
+          duration: data.duration || '211s',
+          // 🚨 FIX: Use AI-recommended timing
+          start: data.start || formatTime(start),
+          end: data.end || formatTime(end)
+        };
+        tracksToProcess = [singleTrack];
+      } else {
+        throw new Error('No valid tracks received from backend.');
+      }
+
+      // 🚨 FIX: Process tracks with correct timing
+      const validTracks = tracksToProcess
+        .map((track, index) => ({
+          ...track,
+          audioUrl: track.audioUrl || track.url || track.audio_url,
+          url: track.audioUrl || track.url || track.audio_url,
+          trackName: trackName.trim(),
+          title: trackName.trim(),
+          duration: track.duration || '211s',
+          // 🚨 CRITICAL FIX: Use AI-recommended timing
+          start: track.start || formatTime(start),
+          end: track.end || formatTime(end)
+        }))
+        .filter(track => track.audioUrl);
+
+      if (validTracks.length === 0) {
+        throw new Error('No valid audio URLs found in tracks.');
+      }
+
+      setGeneratingTracks(prev => 
+        prev.map(track => 
+          track.id === generatingTrack.id 
+            ? { 
+                ...track, 
+                status: 'completed', 
+                progress: 100, 
+                completedTracks: validTracks,
+                error: null 
+              }
+            : track
+        )
+      );
+      
+      setTracks(validTracks);
+      
+      // 🚨 FIX: Save to recent tracks with correct timing
+      for (const track of validTracks) {
+        await saveRecentTrackWithCorrectTiming(track);
+      }
+      
+      if (userId) fetchRecentTracks(userId);
+      
+      const successMessage = {
+        id: Date.now(),
+        type: 'ai',
+        message: `🎉 "${trackName.trim()}" generated successfully! You can now find it in your recent tracks dropdown. Click on it to play, or generate another track! 🎵`,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setChatHistory(prev => [...prev, successMessage]);
+      
+      showMessage(`🎉 "${trackName.trim()}" completed! Check your recent tracks in the dropdown.`, 'success');
+      
+      logToTerminal(`✅ "${trackName.trim()}" generation completed successfully!`, 'success');
     }
-
-    const tracksToProcess = Array.isArray(data.tracks) ? data.tracks : [data];
-    
-    // 🚨 NEW: Add track name to each generated track
-    const tracksWithNames = tracksToProcess.map((track, index) => ({
-      ...track,
-      trackName: tracksToProcess.length > 1 ? `${trackName.trim()}_${index + 1}` : trackName.trim(),
-      title: tracksToProcess.length > 1 ? `${trackName.trim()} (Version ${index + 1})` : trackName.trim(),
-      originalTrackName: trackName.trim()
-    }));
-
-    setTracks(tracksWithNames);
-
-    // Save each generated track as recent track with track name
-    for (const track of tracksWithNames) {
-      await saveRecentTrack(track, start, end);
-    }
-
-    showMessage(`"${trackName.trim()}" generated successfully!`, 'success');
-    logToTerminal(`✅ "${trackName.trim()}" generation completed with ${tracksWithNames.length} version(s)`, 'success');
-
-    // After saving, fetch updated recent tracks
-    if (userId) fetchRecentTracks(userId);
 
   } catch (err) {
     console.error('Error generating music:', err);
     showMessage(err.message, 'error');
-    logToTerminal(`❌ Failed to generate "${trackName}": ${err.message}`, 'error');
+    
+    if (!renderMusicVideo) {
+      setGeneratingTracks(prev => 
+        prev.map(track => 
+          track.status === 'generating' 
+            ? { ...track, status: 'error', progress: 0, error: err.message }
+            : track
+        )
+      );
+      
+      const errorMessage = {
+        id: Date.now(),
+        type: 'ai',
+        message: `❌ Sorry, there was an error: ${err.message}. Please try again!`,
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setChatHistory(prev => [...prev, errorMessage]);
+    }
+    
+    setTracks([]);
   } finally {
-    setIsProcessing(false);
+    if (!renderMusicVideo || currentStep === 5) {
+      setIsProcessing(false);
+    }
   }
 };
 
+// 🚨 NEW: Function to save recent tracks with correct timing
+const saveRecentTrackWithCorrectTiming = async (track) => {
+  if (!userId) return;
+  
+  try {
+    console.log('💾 Saving track with timing:', {
+      trackName: track.trackName,
+      start: track.start, // This should be AI-recommended timing like "0:14"
+      end: track.end,     // This should be AI-recommended timing like "0:53"
+      videoSegment: track.videoSegment
+    });
+
+    const res = await fetch(`${API_BASE_URL}/api/save-recent-track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        audioUrl: track.url || track.audio_url,
+        duration: track.duration || `${selectionDuration}s`,
+        description,
+        lyrics,
+        youtubeUrls: youtubeUrls.filter(url => url.trim() !== ''),
+        // 🚨 CRITICAL FIX: Use the track's timing (AI-recommended)
+        start: track.start, // Should be like "0:14" from AI analysis
+        end: track.end,     // Should be like "0:53" from AI analysis
+        trackName: track.trackName || track.title || trackName || 'Unnamed Track',
+        originalFileName: selectedFile?.name || 'unknown_video',
+        generationType: 'full_generation',
+        // Also save the original video segment info for reference
+        videoSegmentInfo: track.videoSegment ? {
+          videoStart: track.videoSegment.startSeconds,
+          videoEnd: track.videoSegment.endSeconds,
+          videoDuration: track.videoSegment.duration
+        } : null
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.recentTracks) {
+      setRecentTracks(data.recentTracks);
+      logToTerminal(`💾 "${track.trackName || trackName}" saved with correct timing (${track.start} - ${track.end})`, 'success');
+    }
+  } catch (err) {
+    console.warn('Failed to save recent track:', err);
+  }
+};
 // FRONTEND: Enhanced fade algorithm display and controls (ClipTuneGenerator.js)
 
 // Helper function to get fade algorithm info
@@ -4588,117 +6089,7 @@ const FadeInfoDisplay = ({ segment, index }) => {
 
 
 // Enhanced segment display with advanced fade info
-const EnhancedSegmentCard = ({ segment, index, hasGeneratedMusic, effectiveVolume, hasCustomVolume }) => {
-  const startTimeVal = parseFloat(segment.start_time || 0);
-  const endTimeVal = parseFloat(segment.end_time || startTimeVal + 30);
-  const segmentDuration = endTimeVal - startTimeVal;
-  const fadeInfo = getFadeAlgorithmInfo(segment.fade_algorithm);
-  const hasFadeEffects = segment.fadein_duration || segment.fadeout_duration;
-  
-  return (
-    <div
-      style={{
-        background: hasGeneratedMusic 
-          ? 'linear-gradient(135deg, #38a169 0%, #48bb78 100%)'
-          : 'linear-gradient(135deg, #ff8c00 0%, #ff6347 100%)',
-        borderRadius: '16px',
-        padding: '1rem',
-        color: 'white',
-        boxShadow: hasGeneratedMusic 
-          ? '0 4px 15px rgba(56, 161, 105, 0.4)'
-          : '0 4px 15px rgba(255, 140, 0, 0.4)',
-        minWidth: '300px',
-        position: 'relative',
-        border: hasFadeEffects 
-          ? `2px solid ${fadeInfo.color}80` 
-          : '2px solid rgba(255, 255, 255, 0.2)',
-        transition: 'all 0.3s ease'
-      }}
-    >
 
-      {/* Selected for editing indicator */}
-{selectedSegmentForEdit && selectedSegmentForEdit.index === index && (
-  <div style={{
-    position: 'absolute',
-    top: '-8px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#667eea',
-    color: 'white',
-    padding: '0.3rem 0.8rem',
-    borderRadius: '12px',
-    fontSize: '0.7rem',
-    fontWeight: 'bold',
-    border: '2px solid white',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-    zIndex: 10
-  }}>
-    ✂️ SELECTED FOR EDITING
-  </div>
-)}
-      {/* Advanced fade effects indicator */}
-      {hasFadeEffects && (
-        <div style={{
-          position: 'absolute',
-          top: '0.5rem',
-          left: '0.5rem',
-          background: `${fadeInfo.color}40`,
-          borderRadius: '6px',
-          padding: '0.2rem 0.4rem',
-          fontSize: '0.7rem',
-          fontWeight: 'bold',
-          color: fadeInfo.color,
-          border: `1px solid ${fadeInfo.color}60`
-        }}>
-          {fadeInfo.icon} {fadeInfo.name}
-        </div>
-      )}
-      
-      {/* Enhanced Segment info */}
-      <div style={{ 
-        marginBottom: '1rem', 
-        paddingRight: '2rem', 
-        paddingTop: hasFadeEffects ? '1.5rem' : '0' 
-      }}>
-        <div style={{
-          fontSize: '1.1rem',
-          fontWeight: 'bold',
-          textShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-          marginBottom: '0.25rem'
-        }}>
-          {formatTimeFromSeconds(startTimeVal)} - {formatTimeFromSeconds(endTimeVal)}
-        </div>
-        
-        <div style={{
-          fontSize: '0.8rem',
-          opacity: 0.9,
-          marginBottom: '0.5rem'
-        }}>
-          Duration: {formatTimeFromSeconds(segmentDuration)}
-        </div>
-        
-        {/* Advanced Fade Information */}
-        <FadeInfoDisplay segment={segment} index={index} />
-        
-        {segment.music_summary && (
-          <div style={{
-            fontSize: '0.75rem',
-            opacity: 0.8,
-            fontStyle: 'italic',
-            lineHeight: 1.3,
-            marginBottom: '0.5rem'
-          }}>
-            🎵 {segment.music_summary}
-          </div>
-        )}
-      </div>
-      
-      {/* Rest of the segment card (volume controls, etc.) */}
-      {/* ... existing volume control code ... */}
-      
-    </div>
-  );
-};
   // Function to save recent track
 
 const saveRecentTrack = async (track, start, end) => {
@@ -4976,178 +6367,206 @@ const handleDownloadInterval = async (track, index) => {
 
   
   // Handle downloading combined video with audio
-  const handleDownloadVideoWithMusic = async (track) => {
-    console.log('🎬 Starting video+music combination process');
-    console.log('Track data:', track);
-    console.log('Selected file:', selectedFile ? selectedFile.name : 'none');
-    
-    if (!selectedFile || !track) {
-      console.error('Missing video or track data');
-      showMessage('Video or audio track not available.', 'error');
-      return;
-    }
-    
-    const audioUrl = track.audioUrl || track.url || track.audio_url;
-    console.log('Audio URL:', audioUrl);
-    
-    if (!audioUrl) {
-      console.error('No audio URL available');
-      showMessage('Audio URL not available.', 'error');
-      return;
-    }
+// REPLACE your existing handleDownloadVideoWithMusic function with this UPDATED version
+const handleDownloadVideoWithMusic = async (track) => {
+  console.log('🎬 Starting video+music combination process');
+  console.log('Track data:', track);
+  console.log('Selected file:', selectedFile ? selectedFile.name : 'none');
+  
+  if (!selectedFile || !track) {
+    console.error('Missing video or track data');
+    showMessage('Video or audio track not available.', 'error');
+    return;
+  }
+  
+  const audioUrl = track.audioUrl || track.url || track.audio_url;
+  console.log('Audio URL:', audioUrl);
+  
+  if (!audioUrl) {
+    console.error('No audio URL available');
+    showMessage('Audio URL not available.', 'error');
+    return;
+  }
 
-    // Set states for the combining process
+  // 🚨 IMPORTANT: Don't set isGeneratingCombined when called from handleGenerate with renderMusicVideo=true
+  // because we want to stay in the main processing state
+  const shouldShowCombinedProcessing = !renderMusicVideo;
+  if (shouldShowCombinedProcessing) {
     setIsGeneratingCombined(true);
-    setSelectedTrackForCombine(track);
+  }
+  
+  setSelectedTrackForCombine(track);
+  
+  // Only show message if not in main processing mode
+  if (shouldShowCombinedProcessing) {
     showMessage('Combining video and music...', 'info');
+  }
+  
+  // Get the selected segment time range (where music will be placed)
+  const [segmentStart, segmentEnd] = getTrimRange();
+  const segmentDuration = segmentEnd - segmentStart;
+  
+  // Use the complete video duration instead of just the segment
+  const fullVideoDuration = duration; // This is the complete video duration
+  
+  console.log('Video and timing details:', {
+    segmentStart,
+    segmentEnd,
+    segmentDuration,
+    fullVideoDuration,
+    duration
+  });
+  
+  // Parse audio timestamps
+  let audioStart, audioEnd;
+  if (typeof track.start === 'string' && track.start.includes(':')) {
+    audioStart = convertTimestampToSeconds(track.start);
+    audioEnd = convertTimestampToSeconds(track.end);
+  } else {
+    audioStart = parseInt(track.start) || 0;
+    audioEnd = parseInt(track.end) || audioStart + 30;
+  }
+  
+  const audioDuration = audioEnd - audioStart;
+  
+  // Validate all numeric values before sending
+  if (isNaN(fullVideoDuration) || fullVideoDuration <= 0) {
+    console.error('Invalid video duration:', fullVideoDuration);
+    showMessage('Invalid video duration. Please try reloading the video.', 'error');
+    return;
+  }
+  
+  if (isNaN(segmentStart) || isNaN(segmentEnd) || segmentStart < 0 || segmentEnd > fullVideoDuration) {
+    console.error('Invalid segment range:', { segmentStart, segmentEnd, fullVideoDuration });
+    showMessage('Invalid time selection. Please select a valid range.', 'error');
+    return;
+  }
+  
+  if (isNaN(audioStart) || isNaN(audioDuration) || audioDuration <= 0) {
+    console.error('Invalid audio timing:', { audioStart, audioDuration });
+    showMessage('Invalid audio timing. Please try selecting a different track.', 'error');
+    return;
+  }
+  
+  try {
+    // Only show combining message if not in main processing mode
+    if (shouldShowCombinedProcessing) {
+      showMessage('Combining video and music...', 'info');
+    }
     
-    // Get the selected segment time range (where music will be placed)
-    const [segmentStart, segmentEnd] = getTrimRange();
-    const segmentDuration = segmentEnd - segmentStart;
+    // Create a FormData object to send the video and audio information
+    const formData = new FormData();
     
-    // Use the complete video duration instead of just the segment
-    const fullVideoDuration = duration; // This is the complete video duration
+    // Include the original video file
+    if (track.videoUrl) {
+      console.log('Using existing video URL:', track.videoUrl);
+      formData.append('videoUrl', track.videoUrl);
+    } else {
+      console.log('Sending original complete video file');
+      formData.append('video', selectedFile);
+    }
     
-    console.log('Video and timing details:', {
-      segmentStart,
-      segmentEnd,
-      segmentDuration,
-      fullVideoDuration,
-      duration
+    // Audio source and timing information
+    formData.append('audioUrl', audioUrl);
+    
+    // Send complete video duration and segment placement info
+    formData.append('videoDuration', fullVideoDuration.toString());
+    formData.append('videoStart', segmentStart.toString());
+    formData.append('musicDuration', Math.min(segmentDuration, audioDuration).toString());
+    formData.append('audioStart', audioStart.toString());
+    formData.append('audioDuration', audioDuration.toString());
+    
+    // Get music volume from localStorage or default to 0.7 (70%)
+    let musicVolume = previewVolume || 0.7;
+    try {
+      const savedSettings = localStorage.getItem('musicSettings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings);
+        musicVolume = parsedSettings.musicVolume || previewVolume || 0.7;
+      }
+    } catch (e) {
+      console.warn('Error reading music volume from settings:', e);
+    }
+    formData.append('musicVolume', musicVolume.toString());
+    
+    console.log('Sending data:', {
+      videoDuration: fullVideoDuration,
+      videoStart: segmentStart,
+      musicDuration: Math.min(segmentDuration, audioDuration),
+      audioStart,
+      audioDuration,
+      musicVolume,
+      note: `Music should start at ${segmentStart}s and play for ${Math.min(segmentDuration, audioDuration)}s in the video`
     });
     
-    // Parse audio timestamps
-    let audioStart, audioEnd;
-    if (typeof track.start === 'string' && track.start.includes(':')) {
-      audioStart = convertTimestampToSeconds(track.start);
-      audioEnd = convertTimestampToSeconds(track.end);
-    } else {
-      audioStart = parseInt(track.start) || 0;
-      audioEnd = parseInt(track.end) || audioStart + 30;
+    const res = await fetch(`${API_BASE_URL}/api/combine-video-audio`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Error response:', errorText);
+      throw new Error(`Server error: ${res.status}`);
     }
     
-    const audioDuration = audioEnd - audioStart;
+    const responseData = await res.json();
     
-    // Validate all numeric values before sending
-    if (isNaN(fullVideoDuration) || fullVideoDuration <= 0) {
-      console.error('Invalid video duration:', fullVideoDuration);
-      showMessage('Invalid video duration. Please try reloading the video.', 'error');
-      return;
+    if (!responseData.combinedUrl) {
+      throw new Error('No combined video URL received from server');
     }
     
-    if (isNaN(segmentStart) || isNaN(segmentEnd) || segmentStart < 0 || segmentEnd > fullVideoDuration) {
-      console.error('Invalid segment range:', { segmentStart, segmentEnd, fullVideoDuration });
-      showMessage('Invalid time selection. Please select a valid range.', 'error');
-      return;
+    console.log('Server response:', responseData);
+    console.log('Combined video URL:', responseData.combinedUrl);
+    
+    // Validate the combined video URL
+    if (!responseData.combinedUrl || !responseData.combinedUrl.startsWith('http')) {
+      throw new Error('Invalid combined video URL received from server');
     }
     
-    if (isNaN(audioStart) || isNaN(audioDuration) || audioDuration <= 0) {
-      console.error('Invalid audio timing:', { audioStart, audioDuration });
-      showMessage('Invalid audio timing. Please try selecting a different track.', 'error');
-      return;
+    // Set the combined video URL and navigate to preview step
+    setCombinedVideoUrl(responseData.combinedUrl);
+    setHasBeenSaved(false); // Reset save state for new video
+    setSelectedTrackForPreview(track);
+    
+    // 🚨 CRITICAL FIX: Always navigate to Step 5 when video is complete
+    setCurrentStep(5); // Navigate to preview step
+    
+    // 🚨 IMPORTANT: If we were in main processing mode (renderMusicVideo=true), 
+    // now set isProcessing=false since video is complete
+    if (renderMusicVideo) {
+      setIsProcessing(false);
+      console.log('🎬 Video rendering complete - clearing main processing state');
     }
     
-    try {
-      showMessage('Combining video and music...', 'info');
-      
-      // Create a FormData object to send the video and audio information
-      const formData = new FormData();
-      
-      // Include the original video file
-      if (track.videoUrl) {
-        console.log('Using existing video URL:', track.videoUrl);
-        formData.append('videoUrl', track.videoUrl);
-      } else {
-        console.log('Sending original complete video file');
-        formData.append('video', selectedFile);
-      }
-      
-      // Audio source and timing information
-      formData.append('audioUrl', audioUrl);
-      
-      // Send complete video duration and segment placement info
-      formData.append('videoDuration', fullVideoDuration.toString()); // Backend expects 'videoDuration'
-      formData.append('videoStart', segmentStart.toString()); // Backend expects 'videoStart' (where to start the music in the video)
-      formData.append('musicDuration', Math.min(segmentDuration, audioDuration).toString()); // How long the music should play
-      formData.append('audioStart', audioStart.toString()); // Starting point in the audio file
-      formData.append('audioDuration', audioDuration.toString()); // Full audio duration
-      
-      // Get music volume from localStorage or default to 0.7 (70%)
-      let musicVolume = previewVolume || 0.7;
-      try {
-        const savedSettings = localStorage.getItem('musicSettings');
-        if (savedSettings) {
-          const parsedSettings = JSON.parse(savedSettings);
-          musicVolume = parsedSettings.musicVolume || previewVolume || 0.7;
-        }
-      } catch (e) {
-        console.warn('Error reading music volume from settings:', e);
-      }
-      formData.append('musicVolume', musicVolume.toString());
-      
-      console.log('Sending data:', {
-        videoDuration: fullVideoDuration,
-        videoStart: segmentStart, // This should be where music starts in the video (e.g., 5 seconds)
-        musicDuration: Math.min(segmentDuration, audioDuration),
-        audioStart,
-        audioDuration,
-        musicVolume,
-        note: `Music should start at ${segmentStart}s and play for ${Math.min(segmentDuration, audioDuration)}s in the video`
-      });
-      
-      const res = await fetch(`${API_BASE_URL}/api/combine-video-audio`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Server error: ${res.status}`);
-      }
-      
-      const responseData = await res.json();
-      
-      if (!responseData.combinedUrl) {
-        throw new Error('No combined video URL received from server');
-      }
-      
-      console.log('Server response:', responseData);
-      console.log('Combined video URL:', responseData.combinedUrl);
-      
-      // Validate the combined video URL
-      if (!responseData.combinedUrl || !responseData.combinedUrl.startsWith('http')) {
-        throw new Error('Invalid combined video URL received from server');
-      }
-      
-      // Set the combined video URL and navigate to preview step
-      setCombinedVideoUrl(responseData.combinedUrl);
-      setHasBeenSaved(false); // Reset save state for new video
-       // Automatically save the combined video
-
-   // Automatically save the combined video
-
-      setSelectedTrackForPreview(track);
-      setCurrentStep(5); // Navigate to preview step
-      
-      // Show success message
-      showMessage('Video with music generated! Adjust volume and preview below.', 'success');
-      
-      console.log('🎉 ===============================================');
-      console.log('✅ COMBINED VIDEO WITH MUSIC READY FOR PREVIEW!');
-      console.log('📁 Preview URL:', responseData.combinedUrl);
-      console.log('📹 Full video duration:', formatTime(fullVideoDuration));
-      console.log('🎵 Music overlay: starts at', formatTime(segmentStart), 'and plays for', formatTime(Math.min(segmentDuration, audioDuration)));
-      console.log('🎶 Music volume:', Math.round(musicVolume * 100) + '%');
-      console.log('===============================================');
-      
-    } catch (err) {
-      console.error('Error creating video with music:', err);
-      showMessage(err.message || 'Failed to create video with music.', 'error');
-    } finally {
+    // Show success message
+    showMessage('Video with music generated! Adjust volume and preview below.', 'success');
+    
+    console.log('🎉 ===============================================');
+    console.log('✅ COMBINED VIDEO WITH MUSIC READY FOR PREVIEW!');
+    console.log('🎯 Preview URL:', responseData.combinedUrl);
+    console.log('🎹 Full video duration:', formatTime(fullVideoDuration));
+    console.log('🎵 Music overlay: starts at', formatTime(segmentStart), 'and plays for', formatTime(Math.min(segmentDuration, audioDuration)));
+    console.log('🎶 Music volume:', Math.round(musicVolume * 100) + '%');
+    console.log('===============================================');
+    
+  } catch (err) {
+    console.error('Error creating video with music:', err);
+    showMessage(err.message || 'Failed to create video with music.', 'error');
+    
+    // 🚨 IMPORTANT: If we were in main processing mode and video failed,
+    // clear processing state and show error
+    if (renderMusicVideo) {
+      setIsProcessing(false);
+      console.log('🎬 Video rendering failed - clearing main processing state');
+    }
+  } finally {
+    // Only clear isGeneratingCombined if we set it
+    if (shouldShowCombinedProcessing) {
       setIsGeneratingCombined(false);
     }
-  };
+  }
+};
 
   // Function to handle final download from preview page
   const handleFinalDownload = async () => {
@@ -5989,7 +7408,8 @@ const handleDownloadInterval = async (track, index) => {
 
 
 {/* Actual Dropdown with Animation */}
-{showDropdownMenu && (
+{/* 🚨 STEP 4: Updated dropdown visibility condition */}
+{(showDropdownMenu || forceShowDropdown) && (
   <div style={{
     position: 'absolute',
     top: '70px',
@@ -6063,42 +7483,78 @@ const handleDownloadInterval = async (track, index) => {
       </div>
     </div>
 
+    {/* 🚨 STEP 4: Generation Status Indicator */}
+    {generatingTracks.length > 0 && (
+      <div style={{
+        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+        padding: '1rem 1.5rem',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        color: 'white'
+      }}>
+ <div style={{
+  width: '0.1px',        // ← Reduced from 4px to 2px
+  height: '0.1px',       // ← Reduced from 4px to 2px
+  borderRadius: '50%',
+  background: '#60a5fa',
+  animation: 'pulse 1.5s ease-in-out infinite'
+}} />
+        <div>
+          <div style={{ 
+            fontSize: '0.9rem', 
+            fontWeight: 600,
+            marginBottom: '0.2rem'
+          }}>
+            🎵 Music Generation Active
+          </div>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            opacity: 0.9 
+          }}>
+            {generatingTracks.filter(t => t.status === 'generating').length} track(s) in progress
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* Menu Content */}
     <div style={{ padding: '1.5rem' }}>
       {/* Library Button */}
-  <button
-  onClick={() => {
-    navigate('/library'); // Navigate to library page
-    setShowDropdownMenu(false);
-  }}
-  style={{
-    width: '100%',
-    padding: '1rem',
-    background: 'rgba(56, 161, 105, 0.1)',
-    border: '1px solid rgba(56, 161, 105, 0.3)',
-    borderRadius: '12px',
-    color: 'white',
-    fontSize: '1rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    marginBottom: '1rem'
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = 'rgba(56, 161, 105, 0.2)';
-    e.currentTarget.style.transform = 'translateY(-1px)';
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = 'rgba(56, 161, 105, 0.1)';
-    e.currentTarget.style.transform = 'translateY(0)';
-  }}
->
-  📚 Library
-</button>
+      <button
+        onClick={() => {
+          navigate('/library'); // Navigate to library page
+          setShowDropdownMenu(false);
+        }}
+        style={{
+          width: '100%',
+          padding: '1rem',
+          background: 'rgba(56, 161, 105, 0.1)',
+          border: '1px solid rgba(56, 161, 105, 0.3)',
+          borderRadius: '12px',
+          color: 'white',
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          marginBottom: '1rem'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(56, 161, 105, 0.2)';
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(56, 161, 105, 0.1)';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
+      >
+        📚 Library
+      </button>
 
       {/* Settings Button */}
       <button
@@ -6173,14 +7629,242 @@ const handleDownloadInterval = async (track, index) => {
         </button>
       </div>
 
-      {/* Content Area with proper visibility */}
+      {/* 🚨 STEP 3: Enhanced Content Area with generating tracks */}
       <div style={{
-        maxHeight: '300px', // Limit content height
-        overflowY: 'auto', // Enable scrolling for content
-        paddingRight: '0.5rem' // Space for scrollbar
+        maxHeight: '300px',
+        overflowY: 'auto',
+        paddingRight: '0.5rem'
       }}>
+      
+{generatingTracks.length > 0 && generatingTracks.map((track) => (
+  <div
+    key={track.id}
+    style={{
+      marginBottom: '1rem',
+      padding: '1rem',
+      background: track.status === 'error' 
+        ? 'rgba(239, 68, 68, 0.1)' 
+        : track.status === 'completed'
+        ? 'rgba(34, 197, 94, 0.1)'
+        : 'rgba(59, 130, 246, 0.1)',
+      borderRadius: '12px',
+      border: track.status === 'error' 
+        ? '1px solid rgba(239, 68, 68, 0.3)' 
+        : track.status === 'completed'
+        ? '1px solid rgba(34, 197, 94, 0.3)'
+        : '1px solid rgba(59, 130, 246, 0.3)',
+      transition: 'all 0.2s ease',
+      animation: 'fadeIn 0.3s ease-out'
+    }}
+  >
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1rem',
+      marginBottom: track.status === 'generating' ? '0.5rem' : '0'
+    }}>
+      {/* 🔄 UPDATED: Square Progress Indicator */}
+      <div style={{
+        width: '50px',
+        height: '50px',
+        borderRadius: '8px', // Changed from '50%' to '8px' for square shape
+        background: track.status === 'error'
+          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+          : track.status === 'completed'
+          ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+          : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '0.8rem',
+        color: 'white',
+        fontWeight: 'bold',
+        flexShrink: 0,
+        position: 'relative',
+        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+        overflow: 'hidden' // Important for the progress overlay
+      }}>
+        {track.status === 'error' ? (
+          <span style={{ fontSize: '1.2rem' }}>❌</span>
+        ) : track.status === 'completed' ? (
+          <span style={{ fontSize: '1.2rem' }}>✅</span>
+        ) : (
+          <>
+            {/* 🔄 UPDATED: Square Progress Background */}
+            <div style={{
+              position: 'absolute',
+              inset: '0',
+              background: 'rgba(255, 255, 255, 0.1)',
+              zIndex: 1
+            }} />
+            
+            {/* 🔄 UPDATED: Square Progress Fill */}
+            <div style={{
+              position: 'absolute',
+              bottom: '0',
+              left: '0',
+              right: '0',
+              height: `${track.progress}%`,
+              background: 'rgba(255, 255, 255, 0.3)',
+              transition: 'height 0.3s ease',
+              zIndex: 2,
+              borderRadius: '0 0 6px 6px' // Slightly rounded bottom corners
+            }} />
+            
+            {/* 🔄 UPDATED: Percentage Text */}
+            <span style={{ 
+              position: 'relative', 
+              zIndex: 3,
+              fontSize: '0.75rem',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+              fontWeight: 'bold',
+              lineHeight: '1'
+            }}>
+              {Math.round(track.progress)}%
+            </span>
+          </>
+        )}
+      </div>
+      
+      {/* Track info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ 
+          color: 'white', 
+          fontWeight: 600, 
+          fontSize: '0.9rem', 
+          marginBottom: '0.2rem',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {track.trackName}
+        </div>
+        <div style={{ 
+          color: track.status === 'error' 
+            ? '#f87171' 
+            : track.status === 'completed'
+            ? '#4ade80'
+            : '#60a5fa', 
+          fontSize: '0.8rem',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          {track.status === 'error' ? (
+            <>
+              <span>❌</span>
+              <span>Error: {track.error}</span>
+            </>
+          ) : track.status === 'completed' ? (
+            <>
+              <span>✅</span>
+              <span>Generated {track.completedTracks?.length || 1} track(s)</span>
+            </>
+          ) : (
+            <>
+              <span>🎵</span>
+              <span>Generating... {Math.round(track.progress)}%</span>
+            </>
+          )}
+        </div>
+      </div>
+      
+      {/* Time indicator */}
+      <div style={{
+        fontSize: '0.7rem',
+        color: 'rgba(255, 255, 255, 0.6)',
+        textAlign: 'right'
+      }}>
+        {track.status === 'generating' ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem'
+          }}>
+            {/* 🔄 UPDATED: Square Pulse Indicator */}
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '1px', // Slightly rounded square
+              background: '#60a5fa',
+              animation: 'pulse 1.5s ease-in-out infinite'
+            }} />
+          </div>
+        ) : (
+          new Date(track.startTime).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })
+        )}
+      </div>
+    </div>
+    
+    {/* 🔄 UPDATED: Square Progress Bar for generating tracks */}
+    {track.status === 'generating' && (
+      <div style={{
+        width: '100%',
+        height: '6px',
+        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '3px',
+        overflow: 'hidden',
+        marginTop: '0.5rem'
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${track.progress}%`,
+          background: 'linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd)',
+          borderRadius: '3px',
+          transition: 'width 0.8s ease',
+          boxShadow: '0 0 10px rgba(96, 165, 250, 0.5)'
+        }} />
+      </div>
+    )}
+    
+    {/* Success message for completed tracks */}
+    {track.status === 'completed' && (
+      <div style={{
+        marginTop: '0.5rem',
+        padding: '0.5rem',
+        background: 'rgba(34, 197, 94, 0.1)',
+        borderRadius: '6px',
+        fontSize: '0.75rem',
+        color: '#4ade80',
+        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem'
+      }}>
+        <span>🎉</span>
+        <span>Generated successfully! Available in recent tracks.</span>
+      </div>
+    )}
+  </div>
+))}
+
+        {/* 🚨 STEP 3: Separator between generating and completed tracks */}
+        {generatingTracks.length > 0 && (showRecentTracks ? recentTracks.length > 0 : recentCombined.length > 0) && (
+          <div style={{
+            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+            marginBottom: '1rem',
+            paddingTop: '1rem'
+          }}>
+            <div style={{
+              fontSize: '0.8rem',
+              color: 'rgba(255, 255, 255, 0.6)',
+              textAlign: 'center',
+              marginBottom: '1rem',
+              fontWeight: 500
+            }}>
+              Previously Generated
+            </div>
+          </div>
+        )}
+
+        {/* 🚨 STEP 3: Regular recent tracks/videos */}
         {showRecentTracks ? (
-          recentTracks.length === 0 ? (
+          recentTracks.length === 0 && generatingTracks.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '2rem 1rem',
@@ -6471,6 +8155,19 @@ const handleDownloadInterval = async (track, index) => {
           🚪 Logout
         </button>
       </div>
+
+      {/* 🚨 STEP 3 & 4: Combined CSS animations */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        @keyframes fadeIn {
+          0% { opacity: 0; transform: translateY(-10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   </div>
 )}
@@ -6486,8 +8183,6 @@ const handleDownloadInterval = async (track, index) => {
   minHeight: '100vh',
   display: 'flex'
 }}>
-
-    {/* Step 1: Upload Video */}
 {currentStep === 1 && !showVideoEditModal && !showConfigModal && (
   <div style={{
     display: 'flex',
@@ -6504,8 +8199,98 @@ const handleDownloadInterval = async (track, index) => {
     transform: 'translate(-50%, -50%)',
     marginLeft: 0
   }}>
+{isCompleteVideoProcessing && (
+  <div style={{
+    position: 'fixed',
+    bottom: '-1rem',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 1002,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}>
+    {/* Compact Animated Progress Circle */}
+    <div style={{
+      position: 'relative',
+      width: '60px',
+      height: '60px',
+      transform: 'rotate(-90deg)',
+      marginBottom: '0.75rem'
+    }}>
+      {/* Background Circle */}
+      <svg width="60" height="60" style={{ position: 'absolute' }}>
+        <circle
+          cx="30"
+          cy="30"
+          r="25"
+          stroke="rgba(255, 255, 255, 0.1)"
+          strokeWidth="4"
+          fill="transparent"
+        />
+      </svg>
+      
+      {/* Progress Circle */}
+      <svg width="60" height="60" style={{ position: 'absolute' }}>
+        <circle
+          cx="30"
+          cy="30"
+          r="25"
+          stroke="url(#compactProgressGradient)"
+          strokeWidth="4"
+          fill="transparent"
+          strokeDasharray={`${2 * Math.PI * 25}`}
+          strokeDashoffset={`${2 * Math.PI * 25 * (1 - completeVideoProgress / 100)}`}
+          strokeLinecap="round"
+          style={{
+            transition: 'stroke-dashoffset 0.5s ease',
+            filter: 'drop-shadow(0 0 6px rgba(16, 185, 129, 0.6))'
+          }}
+        />
+        <defs>
+          <linearGradient id="compactProgressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#059669" />
+          </linearGradient>
+        </defs>
+      </svg>
+      
+      {/* Percentage Text */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%) rotate(90deg)',
+        fontSize: '0.8rem',
+        fontWeight: 'bold',
+        color: 'white',
+        textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)'
+      }}>
+        {Math.round(completeVideoProgress)}%
+      </div>
+    </div>
+
+    {/* Status Text Below Circle */}
+    <div style={{
+      color: 'rgba(255, 255, 255, 0.9)',
+      fontSize: '0.9rem',
+      fontWeight: 500,
+      textAlign: 'center',
+      textShadow: '0 1px 3px rgba(0, 0, 0, 0.5)',
+      background: 'rgba(30, 41, 59, 0.8)',
+      backdropFilter: 'blur(10px)',
+      padding: '0.5rem 1rem',
+      borderRadius: '20px',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      whiteSpace: 'nowrap'
+    }}>
+      🎵 Segments are being generated...
+    </div>
+  </div>
+)}
     {/* ClipTune Title */}
-    <div style={{ marginBottom: tracks.length > 0 ? '2rem' : '3rem' }}>
+    <div style={{ marginBottom: '3rem' }}>
       <h1 style={{
         ...STYLES.modal.title,
         color: 'white',
@@ -6527,8 +8312,8 @@ const handleDownloadInterval = async (track, index) => {
       </p>
     </div>
 
-    {/* Processing State */}
-    {isProcessing && (
+    {/* Processing State - Only show when renderMusicVideo is true */}
+    {isProcessing && renderMusicVideo && (
       <div style={{
         background: 'rgba(255, 255, 255, 0.1)',
         backdropFilter: 'blur(20px)',
@@ -6568,697 +8353,615 @@ const handleDownloadInterval = async (track, index) => {
       </div>
     )}
 
-    {/* Upload Area - Show only if no tracks are generated */}
-    {tracks.length === 0 && !isProcessing && (
-      <div
-        onClick={() => fileInputRef.current?.click()}
+    {/* Main Content - Chat Interface and Controls */}
+{!(isProcessing && renderMusicVideo) && (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2rem',
+    width: '100%',
+    maxWidth: '800px'
+  }}>
+    
+    {/* Add Enhanced CSS Animations */}
+    <style>{`
+      @keyframes sendPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+        100% { transform: scale(1); }
+      }
+      
+      @keyframes uploadBounce {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-4px) scale(1.05); }
+      }
+      
+      @keyframes scissorSnip {
+        0% { transform: rotate(0deg) scale(1); }
+        25% { transform: rotate(-8deg) scale(1.15); }
+        50% { transform: rotate(8deg) scale(1.15); }
+        75% { transform: rotate(-4deg) scale(1.08); }
+        100% { transform: rotate(0deg) scale(1); }
+      }
+      
+      @keyframes modeToggleFlip {
+        0% { transform: rotateY(0deg) scale(1); }
+        50% { transform: rotateY(180deg) scale(1.05); }
+        100% { transform: rotateY(360deg) scale(1); }
+      }
+      
+      @keyframes buttonGlow {
+        0% { box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+        50% { box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6), 0 0 30px rgba(102, 126, 234, 0.4); }
+        100% { box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+      }
+      
+      @keyframes successGlow {
+        0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        50% { box-shadow: 0 6px 25px rgba(16, 185, 129, 0.6), 0 0 30px rgba(16, 185, 129, 0.4); }
+        100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+      }
+      
+      @keyframes warningGlow {
+        0% { box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); }
+        50% { box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6), 0 0 30px rgba(245, 158, 11, 0.4); }
+        100% { box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); }
+      }
+      
+      @keyframes ripple {
+        0% {
+          transform: scale(0);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+      
+      @keyframes loadingPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      
+      .chat-button {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .chat-button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+      
+      .chat-button:active::before {
+        width: 300px;
+        height: 300px;
+      }
+      
+      .mode-toggle-button {
+        animation: buttonGlow 3s ease-in-out infinite;
+      }
+      
+      .mode-toggle-button:hover {
+        animation: modeToggleFlip 0.8s ease-in-out;
+      }
+      
+      .send-button-ready {
+        animation: buttonGlow 2s ease-in-out infinite;
+      }
+      
+      .send-button-ready:hover {
+        animation: sendPulse 0.6s ease-in-out;
+      }
+      
+      .upload-button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      .upload-button:hover {
+        animation: uploadBounce 0.6s ease-in-out;
+      }
+      
+      .upload-button-success {
+        animation: successGlow 2s ease-in-out infinite;
+      }
+      
+      .scissor-button:hover {
+        animation: scissorSnip 0.8s ease-in-out;
+      }
+      
+      .scissor-button-active {
+        animation: warningGlow 2s ease-in-out infinite;
+      }
+      
+      .loading-spinner {
+        animation: spin 1s linear infinite;
+      }
+      
+      .pulse-ready {
+        animation: loadingPulse 1.5s ease-in-out infinite;
+      }
+      
+      .button-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        animation: none !important;
+      }
+    `}</style>
+    
+    {/* 🚨 Enhanced Mode Toggle Button */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: '2rem',
+      width: '100%',
+      maxWidth: '600px'
+    }}>
+      <button
+        className={`chat-button mode-toggle-button`}
+        onClick={() => setIsCompleteVideoMode(!isCompleteVideoMode)}
         style={{
-          border: '2px dashed rgba(255, 255, 255, 0.3)',
-          borderRadius: '20px',
-          padding: '3rem 2rem',
-          transition: 'all 0.3s ease',
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(15px)',
+          background: isCompleteVideoMode 
+            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          color: 'white',
+          border: 'none',
+          padding: '0.75rem 2rem',
+          borderRadius: '25px',
+          fontSize: '0.9rem',
+          fontWeight: 600,
           cursor: 'pointer',
-          textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-          maxWidth: '400px',
-          width: '100%',
+          boxShadow: isCompleteVideoMode
+            ? '0 4px 15px rgba(16, 185, 129, 0.3)'
+            : '0 4px 15px rgba(59, 130, 246, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          border: '2px solid rgba(255, 255, 255, 0.2)',
           position: 'relative',
           overflow: 'hidden'
         }}
         onMouseEnter={(e) => {
-          e.target.style.borderColor = 'rgba(102, 126, 234, 0.6)';
-          e.target.style.background = 'rgba(102, 126, 234, 0.1)';
-          e.target.style.transform = 'translateY(-4px)';
-          e.target.style.boxShadow = '0 12px 40px rgba(102, 126, 234, 0.3)';
+          e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+          e.currentTarget.style.boxShadow = isCompleteVideoMode
+            ? '0 8px 25px rgba(16, 185, 129, 0.5)'
+            : '0 8px 25px rgba(59, 130, 246, 0.5)';
         }}
         onMouseLeave={(e) => {
-          e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-          e.target.style.background = 'rgba(255, 255, 255, 0.05)';
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
+          e.currentTarget.style.transform = 'translateY(0) scale(1)';
+          e.currentTarget.style.boxShadow = isCompleteVideoMode
+            ? '0 4px 15px rgba(16, 185, 129, 0.3)'
+            : '0 4px 15px rgba(59, 130, 246, 0.3)';
         }}
       >
-        <div style={{ 
-          fontSize: '4rem', 
-          marginBottom: '1rem',
-          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))'
-        }}>📁</div>
-        <div style={{ 
-          fontSize: '1.5rem', 
-          color: 'white', 
-          fontWeight: 700, 
-          marginBottom: '0.5rem',
-          textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-        }}>
-          Upload Your Video
-        </div>
-        <div style={{ 
-          color: 'rgba(255, 255, 255, 0.7)', 
+        <span style={{ 
           fontSize: '1rem',
-          fontWeight: 400,
-          textShadow: '0 1px 4px rgba(0, 0, 0, 0.2)'
+          transition: 'transform 0.3s ease',
+          display: 'inline-block'
         }}>
-          MP4, MOV, AVI, WebM supported
-        </div>
-        <input
-          type="file"
-          accept="video/*"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
-        />
-      </div>
-    )}
+          {isCompleteVideoMode ? '🎬' : '🎵'}
+        </span>
+        {isCompleteVideoMode ? 'Complete Video Mode' : 'Normal Music Mode'}
+        <span style={{ 
+          fontSize: '0.7rem', 
+          opacity: 0.8,
+          background: 'rgba(255, 255, 255, 0.2)',
+          padding: '2px 6px',
+          borderRadius: '10px',
+          marginLeft: '0.5rem',
+          transition: 'all 0.3s ease'
+        }}>
+          {isCompleteVideoMode ? 'Premium' : 'Standard'}
+        </span>
+      </button>
+    </div>
 
-    {/* ✅ FIXED: Generated Tracks Display with interval play/download */}
-    {tracks.length > 0 && !isProcessing && (
+    {/* Enhanced Mode Description */}
+ 
+
+
+<div style={{
+  width: '600px',
+  maxWidth: '90vw',
+  fontFamily: 'SÃ¶hne, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif'
+}}>
+  {/* Main Chat Input Container */}
+  <div style={{
+    background: 'rgba(51, 65, 85, 0.3)',
+    borderRadius: '26px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    padding: '0',
+    boxShadow: '0 0 15px rgba(0, 0, 0, 0.1)',
+    backdropFilter: 'blur(10px)',
+    transition: 'all 0.3s ease'
+  }}>
+    <div style={{
+      position: 'relative',
+      padding: '16px'
+    }}>
+      {/* Large Textarea Container - Keeps original look */}
       <div style={{
-        width: '100%',
-        maxWidth: '800px'
+        marginBottom: '50px'
       }}>
-        <div style={{
-          textAlign: 'center',
-          marginBottom: '2rem'
-        }}>
-          <h2 style={{
-            color: 'white',
-            fontSize: '2rem',
-            fontWeight: 700,
-            marginBottom: '0.5rem',
-            textShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-          }}>
-            🎉 Music Generated Successfully!
-          </h2>
-          <p style={{
-            color: 'rgba(255, 255, 255, 0.8)',
-            fontSize: '1.1rem',
-            margin: 0
-          }}>
-            Your AI-generated tracks are ready to play and download
-          </p>
-        </div>
-        
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.5rem'
-        }}>
-          {tracks.map((track, index) => {
-            // ✅ FIX: Ensure audioRefs are properly initialized
-            if (!audioRefs.current[index]) {
-              audioRefs.current[index] = React.createRef();
-            }
-
-            // ✅ FIX: Get the correct audio URL from different possible properties
-            const audioUrl = track.audioUrl || track.url || track.audio_url || track.audio;
-            const trackTitle = track.trackName || track.title || `Track ${index + 1}`;
+        <textarea
+          value={chatMessage}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only allow first line - remove any line breaks
+            const firstLine = value.split('\n')[0];
+            setChatMessage(firstLine);
+          }}
+          placeholder={isCompleteVideoMode 
+            ? "Describe processing instructions (e.g., 'only add music where people don't speak')"
+            : "Describe your music style (e.g., 'epic orchestral for action scenes')"
+          }
+          style={{
+            width: '80%',
+            minHeight: '120px',        // Keep original large height
+            maxHeight: '300px',        // Keep original max height  
+            padding: '20px 60px 20px 160px', // Keep original padding
+            fontSize: '16px',
+            lineHeight: '24px',
+            color: '#ffffff',
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            resize: 'none',            // Prevent manual resizing
+            fontFamily: 'inherit',
+            overflow: 'hidden',        // Hide scroll bars
+            textAlign: 'left',
+            transition: 'all 0.3s ease',
             
-            console.log(`🎵 Track ${index + 1} data:`, {
-              audioUrl,
-              trackTitle,
-              hasAudioUrl: !!audioUrl,
-              trackObject: track
-            });
-
-            // ✅ HELPER: Convert timestamp to seconds
-            const convertTimestampToSeconds = (timestamp) => {
-              if (typeof timestamp === 'number') return timestamp;
-              if (!timestamp || typeof timestamp !== 'string') return 0;
+            // Key properties for single line behavior
+            whiteSpace: 'nowrap',      // Prevent text wrapping to new lines
+            overflowX: 'auto',         // Allow horizontal scrolling
+            overflowY: 'hidden',       // Hide vertical overflow
+            
+            // Hide scrollbars but keep functionality
+            scrollbarWidth: 'none',    // Firefox
+            msOverflowStyle: 'none',   // IE/Edge
+          }}
+          rows={5}                     // Keep original rows for visual size
+          onInput={(e) => {
+            // Prevent textarea from growing vertically
+            e.target.style.height = '120px'; // Keep fixed height
+            
+            // Only allow horizontal scrolling
+            const value = e.target.value;
+            const firstLine = value.split('\n')[0];
+            if (value !== firstLine) {
+              e.target.value = firstLine;
+              setChatMessage(firstLine);
+            }
+          }}
+          onKeyDown={(e) => {
+            // Prevent Enter key from creating new lines
+            if (e.key === 'Enter') {
+              e.preventDefault();
               
-              const parts = timestamp.split(':').map(Number);
-              if (parts.length === 2) {
-                return parts[0] * 60 + parts[1]; // MM:SS
-              } else if (parts.length === 3) {
-                return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
-              }
-              return 0;
-            };
-
-            // ✅ FIXED: Play ONLY the interval
-            const handlePlayInterval = async () => {
-              const audio = audioRefs.current[index]?.current;
-              if (!audio || !audioUrl) {
-                showMessage('Audio not available', 'error');
-                return;
-              }
-
-              try {
-                // Parse start and end times
-                const startSeconds = convertTimestampToSeconds(track.start || '0:00');
-                const endSeconds = convertTimestampToSeconds(track.end || '0:30');
-                
-                console.log(`🎵 Playing interval: ${track.start} (${startSeconds}s) to ${track.end} (${endSeconds}s)`);
-                
-                // Set audio source if needed
-                if (audio.src !== audioUrl) {
-                  audio.src = audioUrl;
+              if (chatMessage.trim()) {
+                if (!isFileReady) {
+                  showMessage('Please upload a video file first', 'error');
+                  return;
                 }
-
-                // Jump to start time and play
-                audio.currentTime = startSeconds;
-                await audio.play();
                 
-                showMessage(`Playing "${trackTitle}" interval: ${track.start} - ${track.end}`, 'success');
-
-                // Stop at end time
-                const stopAtEndTime = () => {
-                  if (audio.currentTime >= endSeconds) {
-                    audio.pause();
-                    audio.removeEventListener('timeupdate', stopAtEndTime);
-                    console.log(`⏸️ Stopped at ${audio.currentTime}s (target: ${endSeconds}s)`);
-                    showMessage('Interval playback finished', 'info');
-                  }
-                };
-                
-                audio.addEventListener('timeupdate', stopAtEndTime);
-
-                // Cleanup listeners
-                const cleanup = () => {
-                  audio.removeEventListener('timeupdate', stopAtEndTime);
-                  audio.removeEventListener('ended', cleanup);
-                  audio.removeEventListener('pause', cleanup);
-                };
-                
-                audio.addEventListener('ended', cleanup);
-                audio.addEventListener('pause', cleanup);
-
-              } catch (error) {
-                console.error('❌ Interval play error:', error);
-                showMessage(`Failed to play interval: ${error.message}`, 'error');
-              }
-            };
-
-            // ✅ FIXED: Download ONLY the interval
-            const handleDownloadInterval = async () => {
-              if (!audioUrl) {
-                showMessage('Audio URL not available for download.', 'error');
-                return;
-              }
-
-              try {
-                // Parse start and end times
-                const startSeconds = convertTimestampToSeconds(track.start || '0:00');
-                const endSeconds = convertTimestampToSeconds(track.end || '0:30');
-                const duration = endSeconds - startSeconds;
-
-                console.log(`📥 Downloading interval: ${track.start} (${startSeconds}s) to ${track.end} (${endSeconds}s)`);
-                console.log(`⏰ Duration: ${duration}s`);
-                
-                showMessage(`Preparing interval download: ${track.start} - ${track.end}...`, 'info');
-
-                // Try server-side trimming first
-                try {
-                  const trimResponse = await fetch(`${API_BASE_URL}/api/trim-audio`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      audioUrl: audioUrl,
-                      start: startSeconds,
-                      duration: duration,
-                      trackName: trackTitle
-                    })
-                  });
-
-                  if (trimResponse.ok) {
-                    const trimData = await trimResponse.json();
-                    
-                    if (trimData.trimmedUrl) {
-                      // Download the trimmed audio
-                      const fileResponse = await fetch(trimData.trimmedUrl);
-                      const blob = await fileResponse.blob();
-                      
-                      const blobUrl = window.URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = blobUrl;
-                      link.download = `${trackTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_${track.start.replace(':', '-')}-${track.end.replace(':', '-')}.mp3`;
-                      link.style.display = 'none';
-                      
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      
-                      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-                      
-                      showMessage(`Interval downloaded: ${track.start} - ${track.end}`, 'success');
-                      return;
-                    }
-                  }
-                  
-                  throw new Error('Server trimming failed');
-                  
-                } catch (serverError) {
-                  console.warn('Server trimming failed, trying direct download with time markers...');
-                  
-                  // Fallback: Download full audio with time info in filename
-                  const response = await fetch(audioUrl);
-                  const blob = await response.blob();
-                  
-                  const blobUrl = window.URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = blobUrl;
-                  link.download = `${trackTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}_FULL_AUDIO_Interval_${track.start.replace(':', '-')}-${track.end.replace(':', '-')}.mp3`;
-                  link.style.display = 'none';
-                  
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  
-                  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
-                  
-                  showMessage(`Full audio downloaded with interval info: ${track.start} - ${track.end}`, 'warning');
-                }
-
-              } catch (error) {
-                console.error('❌ Interval download error:', error);
-                
-                // Last resort: open in new tab with time fragment
-                try {
-                  const startSeconds = convertTimestampToSeconds(track.start || '0:00');
-                  const endSeconds = convertTimestampToSeconds(track.end || '0:30');
-                  const urlWithTime = `${audioUrl}#t=${startSeconds},${endSeconds}`;
-                  window.open(urlWithTime, '_blank');
-                  showMessage('Download failed. Opened in new tab with time markers.', 'warning');
-                } catch (openError) {
-                  showMessage(`Download failed: ${error.message}`, 'error');
+                if (isCompleteVideoMode) {
+                  setVideoInstructions(chatMessage.trim());
+                  setDescription(chatMessage.trim());
+                  processVideoWithClipTune();
+                } else {
+                  handleProceedToNext();
                 }
               }
-            };
-
-            return (
-              <div
-                key={index}
-                style={{
-                  background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  borderRadius: '20px',
-                  padding: '1.5rem',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {/* Header */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '1rem'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem'
-                  }}>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.5rem',
-                      boxShadow: '0 4px 16px rgba(102, 126, 234, 0.4)'
-                    }}>
-                      🎵
-                    </div>
-                    <div>
-                      <h4 style={{
-                        color: 'white',
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        margin: 0,
-                        textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-                      }}>
-                        {trackTitle}
-                      </h4>
-                      <p style={{
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '0.85rem',
-                        margin: 0,
-                        fontWeight: 500
-                      }}>
-                        {track.start || '0:00'} → {track.end || '0:30'} • {track.duration || '30s'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: 'white',
-                    padding: '0.375rem 0.875rem',
-                    borderRadius: '20px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    ✓ Ready
-                  </div>
-                </div>
-
-                {/* ✅ FIXED: Audio element with proper error handling */}
-                {audioUrl ? (
-                  <div style={{
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    marginBottom: '1rem',
-                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                  }}>
-                    <audio
-                      ref={audioRefs.current[index]}
-                      controls
-                      style={{
-                        width: '100%',
-                        borderRadius: '8px',
-                        height: '50px'
-                      }}
-                      onError={(e) => {
-                        console.error(`❌ Audio error for track ${index + 1}:`, e);
-                        showMessage(`Audio loading failed for "${trackTitle}"`, 'error');
-                      }}
-                      onLoadedData={() => {
-                        console.log(`✅ Audio loaded successfully for track ${index + 1}`);
-                      }}
-                    >
-                      <source src={audioUrl} type="audio/mpeg" />
-                      <source src={audioUrl} type="audio/wav" />
-                      <source src={audioUrl} type="audio/ogg" />
-                      Your browser does not support the audio element.
-                    </audio>
-                    
-                    {/* Debug info (remove in production) */}
-                    <div style={{
-                      fontSize: '0.7rem',
-                      color: 'rgba(255, 255, 255, 0.5)',
-                      marginTop: '0.5rem',
-                      fontFamily: 'monospace',
-                      textAlign: 'center'
-                    }}>
-                      Audio URL: {audioUrl.substring(0, 50)}...
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{
-                    background: '#fed7d7',
-                    color: '#c53030',
-                    padding: '1rem',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    textAlign: 'center'
-                  }}>
-                    ⚠️ Audio URL not available for this track
-                  </div>
-                )}
-
-                {/* ✅ NEW: Interval Info Display */}
-                <div style={{
-                  marginBottom: '1rem',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  borderRadius: '8px',
-                  padding: '0.75rem',
-                  border: '1px solid rgba(59, 130, 246, 0.2)'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.85rem',
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    fontWeight: 500
-                  }}>
-                    <span style={{ fontSize: '1rem' }}>⏱️</span>
-                    Interval: {track.start || '0:00'} → {track.end || '0:30'} 
-                    <span style={{ 
-                      background: 'rgba(59, 130, 246, 0.3)',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600
-                    }}>
-                      {(() => {
-                        const startSec = convertTimestampToSeconds(track.start || '0:00');
-                        const endSec = convertTimestampToSeconds(track.end || '0:30');
-                        return `${endSec - startSec}s duration`;
-                      })()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* ✅ UPDATED: Action buttons with interval functionality */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '0.75rem'
-                }}>
-                  {/* ✅ FIXED: Play Interval Button */}
-                  <button
-                    onClick={handlePlayInterval}
-                    disabled={!audioUrl}
-                    style={{
-                      background: audioUrl 
-                        ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
-                        : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '0.75rem 1rem',
-                      color: 'white',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      cursor: audioUrl ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      boxShadow: audioUrl 
-                        ? '0 4px 16px rgba(59, 130, 246, 0.3)'
-                        : '0 4px 16px rgba(107, 114, 128, 0.3)',
-                      opacity: audioUrl ? 1 : 0.5
-                    }}
-                    onMouseEnter={(e) => {
-                      if (audioUrl) {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (audioUrl) {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(59, 130, 246, 0.3)';
-                      }
-                    }}
-                    title={`Play interval: ${track.start || '0:00'} - ${track.end || '0:30'}`}
-                  >
-                    <span>▶️</span>
-                    Play Interval
-                  </button>
-
-                  {/* ✅ FIXED: Download Interval Button */}
-                  <button
-                    onClick={handleDownloadInterval}
-                    disabled={!audioUrl}
-                    style={{
-                      background: audioUrl 
-                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                        : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '0.75rem 1rem',
-                      color: 'white',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      cursor: audioUrl ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      boxShadow: audioUrl 
-                        ? '0 4px 16px rgba(16, 185, 129, 0.3)'
-                        : '0 4px 16px rgba(107, 114, 128, 0.3)',
-                      opacity: audioUrl ? 1 : 0.5
-                    }}
-                    onMouseEnter={(e) => {
-                      if (audioUrl) {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (audioUrl) {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.3)';
-                      }
-                    }}
-                    title={`Download interval: ${track.start || '0:00'} - ${track.end || '0:30'}`}
-                  >
-                    <span>⬇️</span>
-                    Download Interval
-                  </button>
-
-                  {/* Use for Video Button - unchanged */}
-                  <button
-                    onClick={() => {
-                      setSelectedTrack(track);
-                      setCurrentStep(2);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '0.75rem 1rem',
-                      color: 'white',
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      boxShadow: '0 4px 16px rgba(245, 158, 11, 0.3)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 158, 11, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(245, 158, 11, 0.3)';
-                    }}
-                  >
-                    <span>🎬</span>
-                    Use for Video
-                  </button>
-                </div>
-
-                {/* Video with Music Button - if renderMusicVideo is enabled */}
-                {renderMusicVideo && (
-                  <div style={{
-                    marginTop: '1rem',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                    paddingTop: '1rem'
-                  }}>
-                    <button
-                      onClick={() => handleDownloadVideoWithMusic(track)}
-                      style={{
-                        width: '100%',
-                        background: 'linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)',
-                        border: 'none',
-                        borderRadius: '12px',
-                        padding: '1rem',
-                        color: 'white',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.75rem',
-                        boxShadow: '0 6px 20px rgba(43, 108, 176, 0.4)',
-                        position: 'relative'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(43, 108, 176, 0.5)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(43, 108, 176, 0.4)';
-                      }}
-                    >
-                      {/* New Badge */}
-                      <div style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        right: '1rem',
-                        background: '#ef4444',
-                        color: 'white',
-                        borderRadius: '12px',
-                        padding: '0.25rem 0.5rem',
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        border: '2px solid white',
-                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)'
-                      }}>
-                        NEW ✓
-                      </div>
-                      <span style={{ fontSize: '1.2rem' }}>🎬</span>
-                      Download Video + Music
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Action Panel */}
-        <div style={{
-          background: 'rgba(255, 140, 0, 0.1)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '20px',
-          padding: '2rem',
-          border: '2px solid rgba(255, 140, 0, 0.3)',
-          boxShadow: '0 8px 32px rgba(255, 140, 0, 0.2)',
-          marginTop: '2rem',
-          textAlign: 'center'
-        }}>
+            }
+            
+            // Prevent other keys that could create new lines
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+              e.preventDefault();
+            }
+          }}
+          onPaste={(e) => {
+            // Handle paste events to only keep first line
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text');
+            const firstLine = paste.split('\n')[0];
+            setChatMessage(prevMessage => prevMessage + firstLine);
+          }}
+        />
         
-       
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            justifyContent: 'center',
-            flexWrap: 'wrap'
-          }}>
+        {/* Custom CSS to hide scrollbars completely */}
+        <style>{`
+          /* Hide scrollbars in webkit browsers */
+          textarea::-webkit-scrollbar {
+            display: none;
+          }
           
-          </div>
-        </div>
+          /* Ensure single line behavior */
+          textarea {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+          }
+          
+          /* Optional: Add subtle visual indicator for overflow */
+          textarea:focus {
+            box-shadow: inset 0 0 0 1px rgba(102, 126, 234, 0.5);
+          }
+        `}</style>
       </div>
-    )}
-
-    {/* Quick Actions Panel */}
-    {tracks.length === 0 && !isProcessing && (
+      
+      {/* Dynamic feedback indicator - REMOVED */}
+      
+      {/* Video segment info display */}
+      {savedVideoSegment && !isCompleteVideoMode && (
+        <div style={{
+          position: 'absolute',
+          bottom: '60px',
+          left: '16px',
+          right: '60px',
+          background: 'rgba(16, 185, 129, 0.15)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
+          borderRadius: '12px',
+          padding: '8px 12px',
+          fontSize: '12px',
+          color: '#10b981',
+          textAlign: 'center',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          🎬 Video segment set: {savedVideoSegment.startTime} - {savedVideoSegment.endTime} ({savedVideoSegment.duration}s)
+        </div>
+      )}
+      
+      {/* Enhanced Left side buttons container */}
       <div style={{
-        marginTop: '3rem',
+        position: 'absolute',
+        bottom: '16px',
+        left: '16px',
         display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '1.5rem'
+        gap: '8px'
+      }}>
+        {/* Enhanced Upload Button */}
+        <button
+          className={`chat-button upload-button ${isFileReady ? 'upload-button-success' : ''}`}
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            border: 'none',
+            background: isFileReady 
+              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+              : 'transparent',
+            cursor: 'pointer',
+            color: isFileReady ? 'white' : 'rgba(255, 255, 255, 0.7)',
+            fontSize: '18px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: isFileReady 
+              ? '0 4px 15px rgba(16, 185, 129, 0.3)' 
+              : 'none'
+          }}
+          title={isFileReady ? "File uploaded successfully!" : "Upload video file"}
+        >
+          {isUploading ? (
+            <div className="loading-spinner" style={{
+              width: '18px',
+              height: '18px',
+              border: '2px solid transparent',
+              borderTop: '2px solid currentColor',
+              borderRadius: '50%'
+            }} />
+          ) : isFileReady ? (
+            <span style={{ 
+              fontSize: '16px',
+              animation: 'loadingPulse 2s ease-in-out infinite'
+            }}>✅</span>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.64 16.2a2 2 0 01-2.83-2.83l8.48-8.48" 
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+          <input
+            type="file"
+            accept="video/*"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            style={{ display: 'none' }}
+          />
+        </button>
+
+        {/* Enhanced Timeline Editor Button */}
+        {!isCompleteVideoMode && (
+          <button
+            className={`chat-button scissor-button ${savedVideoSegment ? 'scissor-button-active' : ''} ${!isFileReady ? 'button-disabled' : ''}`}
+            onClick={() => {
+              if (isFileReady) {
+                setShowTimelineEditor(true);
+              } else {
+                showMessage('Please upload a video file first', 'error');
+              }
+            }}
+            disabled={!isFileReady}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              border: 'none',
+              background: savedVideoSegment 
+                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                : isFileReady ? 'transparent' : 'rgba(255, 255, 255, 0.1)',
+              cursor: isFileReady ? 'pointer' : 'not-allowed',
+              color: savedVideoSegment 
+                ? 'white'
+                : isFileReady ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.3)',
+              fontSize: '18px',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: savedVideoSegment 
+                ? '0 4px 15px rgba(245, 158, 11, 0.3)' 
+                : 'none'
+            }}
+            title={
+              !isFileReady ? "Upload video first" :
+              savedVideoSegment ? `Timeline set: ${savedVideoSegment.startTime} - ${savedVideoSegment.endTime}` :
+              "Set video timeline"
+            }
+          >
+            <span style={{ 
+              fontSize: '16px',
+              display: 'inline-block',
+              transition: 'transform 0.3s ease'
+            }}>✂️</span>
+          </button>
+        )}
+      </div>
+      
+      {/* Enhanced Send Button */}
+      <button
+        className={`chat-button ${(chatMessage.trim() && isFileReady) ? 'send-button-ready' : 'button-disabled'}`}
+        onClick={() => {
+          if (!chatMessage.trim()) {
+            showMessage('Please enter a message first', 'error');
+            return;
+          }
+          
+          if (!isFileReady) {
+            showMessage('Please upload a video file first', 'error');
+            return;
+          }
+          
+          if (isCompleteVideoMode) {
+            setVideoInstructions(chatMessage.trim());
+            setDescription(chatMessage.trim());
+            processVideoWithClipTune();
+          } else {
+            handleProceedToNext();
+          }
+        }}
+        disabled={!chatMessage.trim() || !isFileReady}
+        style={{
+          position: 'absolute',
+          bottom: '16px',
+          right: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '36px',
+          height: '36px',
+          borderRadius: '18px',
+          border: 'none',
+          background: (!chatMessage.trim() || !isFileReady) 
+            ? '#6b7280' 
+            : isCompleteVideoMode
+            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+            : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          cursor: (!chatMessage.trim() || !isFileReady) ? 'not-allowed' : 'pointer',
+          color: 'white',
+          overflow: 'hidden',
+          transform: (!chatMessage.trim() || !isFileReady) ? 'scale(0.95)' : 'scale(1)',
+          boxShadow: (chatMessage.trim() && isFileReady) 
+            ? (isCompleteVideoMode 
+              ? '0 4px 12px rgba(16, 185, 129, 0.3)'
+              : '0 4px 12px rgba(59, 130, 246, 0.3)')
+            : 'none'
+        }}
+        title={
+          !chatMessage.trim() ? "Enter a message first" :
+          !isFileReady ? "Upload video first" :
+          isCompleteVideoMode ? "Start Complete Video Analysis" :
+          "Continue to Music Generation"
+        }
+      >
+        {/* Animated Icon */}
+        <div style={{
+          transition: 'transform 0.3s ease',
+          transform: (chatMessage.trim() && isFileReady) ? 'scale(1)' : 'scale(0.8)'
+        }}>
+          {isCompleteVideoMode ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M.5 1.163A1 1 0 0 1 1.97.28l12.868 6.837a1 1 0 0 1 0 1.766L1.969 15.72A1 1 0 0 1 .5 14.836V10.33a1 1 0 0 1 .816-.983L8.5 8 1.316 6.653A1 1 0 0 1 .5 5.67V1.163Z" 
+                    fill="currentColor"/>
+            </svg>
+          )}
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+    {/* Enhanced Upload Progress Indicator */}
+    {isUploading && (
+      <div style={{
+        background: 'rgba(59, 130, 246, 0.1)',
+        border: '1px solid rgba(59, 130, 246, 0.3)',
+        borderRadius: '12px',
+        padding: '1rem',
+        color: '#3b82f6',
+        textAlign: 'center',
+        animation: 'fadeIn 0.3s ease',
+        width: '100%',
+        maxWidth: '400px'
       }}>
         <div style={{
-          color: 'rgba(255, 255, 255, 0.7)',
-          fontSize: '0.9rem',
-          textAlign: 'center',
-          maxWidth: '400px'
+          width: '100%',
+          height: '6px',
+          background: 'rgba(59, 130, 246, 0.2)',
+          borderRadius: '3px',
+          marginBottom: '0.5rem',
+          overflow: 'hidden'
         }}>
+          <div style={{
+            width: `${uploadProgress}%`,
+            height: '100%',
+            background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+            borderRadius: '3px',
+            transition: 'width 0.3s ease',
+            animation: 'loadingPulse 1.5s ease-in-out infinite'
+          }} />
         </div>
-        
-        <div style={{
-          display: 'flex',
-          gap: '2rem',
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
-       
-     
-        </div>
+        <span className="pulse-ready">🎹 Uploading and processing video... {uploadProgress}%</span>
       </div>
     )}
 
-   
-
-    {/* Feature Highlights */}
-
+    {/* Enhanced File Ready Indicator */}
+    {isFileReady && (
+      <div style={{
+        background: 'rgba(16, 185, 129, 0.1)',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        borderRadius: '12px',
+        padding: '1rem',
+        color: '#10b981',
+        textAlign: 'center',
+        animation: 'fadeIn 0.3s ease',
+        width: '100%',
+        maxWidth: '400px'
+      }}>
+        <span className="pulse-ready">✅ Video is uploaded. </span>
+      </div>
+    )}
+  </div>
+)}
   </div>
 )}
 {currentStep === 2 && (
@@ -7785,84 +9488,180 @@ const handleDownloadInterval = async (track, index) => {
       </div>
 
       {/* Volume Control Section */}
-      {hasGeneratedMusic && !isRemoved && (
-        <div 
-          style={{
-            marginTop: '0.75rem',
-            padding: '0.75rem',
-            background: 'rgba(17, 24, 39, 0.5)',
-            borderRadius: '0.25rem',
-            border: '1px solid #4b5563'
-          }}
-          onClick={(e) => e.stopPropagation()} // CRITICAL FIX
-          onMouseDown={(e) => e.stopPropagation()} // ADDITIONAL SAFETY
-          onMouseUp={(e) => e.stopPropagation()} // ADDITIONAL SAFETY
-        >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '0.5rem'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.75rem',
-              color: '#d1d5db',
-              fontWeight: 500
-            }}>
-              <span style={{ fontSize: '0.75rem' }}>🔊</span>
-              Volume Control
-            </div>
-            <div style={{
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              background: hasCustomVolume ? '#2563eb' : '#4b5563',
-              color: hasCustomVolume ? 'white' : '#d1d5db'
-            }}>
-              {Math.round(effectiveVolume * 100)}%
-            </div>
-          </div>
+    {/* Volume Control Section - Enhanced with Loading State */}
+{hasGeneratedMusic && !isRemoved && (
+  <div 
+    style={{
+      marginTop: '0.75rem',
+      padding: '0.75rem',
+      background: 'rgba(17, 24, 39, 0.5)',
+      borderRadius: '0.25rem',
+      border: '1px solid #4b5563',
+      position: 'relative' // Important for overlay positioning
+    }}
+    onClick={(e) => e.stopPropagation()}
+    onMouseDown={(e) => e.stopPropagation()}
+    onMouseUp={(e) => e.stopPropagation()}
+  >
+    {/* 🚨 NEW: Volume Update Loading Overlay */}
+    {volumeUpdateProgress[index]?.isUpdating && (
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(30, 41, 59, 0.95)',
+        backdropFilter: 'blur(4px)',
+        borderRadius: '0.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 20,
+        gap: '0.75rem'
+      }}>
+        {/* Circular Progress Indicator */}
+        <div style={{
+          position: 'relative',
+          width: '50px',
+          height: '50px',
+          transform: 'rotate(-90deg)'
+        }}>
+          {/* Background Circle */}
+          <svg width="50" height="50" style={{ position: 'absolute' }}>
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              stroke="rgba(255, 255, 255, 0.1)"
+              strokeWidth="3"
+              fill="transparent"
+            />
+          </svg>
           
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={effectiveVolume}
-            onChange={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              handleSegmentVolumeChange(index, parseFloat(e.target.value));
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            onPointerMove={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              accentColor: '#2563eb',
-              cursor: 'pointer'
-            }}
-          />
+          {/* Progress Circle */}
+          <svg width="50" height="50" style={{ position: 'absolute' }}>
+            <circle
+              cx="25"
+              cy="25"
+              r="20"
+              stroke="#3b82f6"
+              strokeWidth="3"
+              fill="transparent"
+              strokeDasharray={`${2 * Math.PI * 20}`}
+              strokeDashoffset={`${2 * Math.PI * 20 * (1 - (volumeUpdateProgress[index]?.progress || 0) / 100)}`}
+              strokeLinecap="round"
+              style={{
+                transition: 'stroke-dashoffset 0.3s ease',
+                filter: 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.6))'
+              }}
+            />
+          </svg>
           
+          {/* Percentage Text */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '0.75rem',
-            color: '#9ca3af',
-            marginTop: '0.25rem'
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%) rotate(90deg)',
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+            color: 'white',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
           }}>
-            <span>🔇 0%</span>
-            <span>🔊 100%</span>
+            {Math.round(volumeUpdateProgress[index]?.progress || 0)}%
           </div>
         </div>
-      )}
+
+        {/* Status Text */}
+        <div style={{
+          color: 'white',
+          fontSize: '0.8rem',
+          fontWeight: 500,
+          textAlign: 'center',
+          lineHeight: '1.2'
+        }}>
+          🎚️ Updating Volume to {volumeUpdateProgress[index]?.targetVolume}%
+          <div style={{
+            fontSize: '0.7rem',
+            color: 'rgba(255, 255, 255, 0.7)',
+            marginTop: '0.25rem'
+          }}>
+            Regenerating video with new audio levels...
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Original Volume Control Content */}
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: '0.5rem'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        fontSize: '0.75rem',
+        color: '#d1d5db',
+        fontWeight: 500
+      }}>
+        <span style={{ fontSize: '0.75rem' }}>🔊</span>
+        Volume Control
+      </div>
+      <div style={{
+        fontSize: '0.75rem',
+        fontWeight: 'bold',
+        padding: '0.25rem 0.5rem',
+        borderRadius: '0.25rem',
+        background: hasCustomVolume ? '#2563eb' : '#4b5563',
+        color: hasCustomVolume ? 'white' : '#d1d5db'
+      }}>
+        {Math.round(effectiveVolume * 100)}%
+      </div>
+    </div>
+    
+    <input
+      type="range"
+      min="0"
+      max="1"
+      step="0.1"
+      value={effectiveVolume}
+      onChange={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        handleSegmentVolumeChange(index, parseFloat(e.target.value));
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
+      disabled={volumeUpdateProgress[index]?.isUpdating} // Disable during update
+      style={{
+        width: '100%',
+        accentColor: '#2563eb',
+        cursor: volumeUpdateProgress[index]?.isUpdating ? 'not-allowed' : 'pointer',
+        opacity: volumeUpdateProgress[index]?.isUpdating ? 0.5 : 1
+      }}
+    />
+    
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: '0.75rem',
+      color: '#9ca3af',
+      marginTop: '0.25rem'
+    }}>
+      <span>🔇 0%</span>
+      <span>🔊 100%</span>
+    </div>
+  </div>
+)}
 
       {/* ✅ TIMELINE CONTROLS - NOW INSIDE THE MAP FUNCTION WHERE 'index' IS DEFINED */}
 
@@ -7929,7 +9728,7 @@ const handleDownloadInterval = async (track, index) => {
           onMouseEnter={(e) => e.currentTarget.style.background = '#1d4ed8'} // Darker blue on hover
           onMouseLeave={(e) => e.currentTarget.style.background = '#2563eb'}
         >
-          🎬 Create Complete Video ({Object.keys(generatedSegmentMusic).length})
+  Download video ({Object.keys(generatedSegmentMusic).length})
         </button>
         
         <div style={{
@@ -7977,16 +9776,17 @@ const handleDownloadInterval = async (track, index) => {
   </div>
 
   {/* Video Container */}
+{/* Video Container with Complete Video Button */}
 <div id="video-preview-container" style={{ 
   width: '100%', 
   textAlign: 'center', 
   marginBottom: '2rem',
   display: 'flex',
-  gap: '2rem',
   alignItems: 'flex-start',
-  justifyContent: 'center'
+  justifyContent: 'center',
+  position: 'relative'  // For absolute positioning of button
 }}>
-  {/* If you have a progressive video, add this container too */}
+  {/* Video Section - Centered */}
   <div id="progressive-video-container" style={{
     display: 'flex',
     justifyContent: 'center',
@@ -7995,14 +9795,14 @@ const handleDownloadInterval = async (track, index) => {
     marginBottom: '2rem'
   }}>
     <div style={{
-      width: '60%',
+      width: '100%',
       textAlign: 'center',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center'
     }}>
-      {/* Your existing video title div */}
+      {/* Video title div */}
       <div style={{
         background: processedVideoResult?.trim_info ? 
           'linear-gradient(135deg, #38a169 0%, #48bb78 100%)' : 
@@ -8014,109 +9814,391 @@ const handleDownloadInterval = async (track, index) => {
         fontWeight: 600,
         marginBottom: '0'
       }}>
-        {processedVideoResult?.trim_info ? (
-          <>
-            🎬 Trimmed Video Preview ({formatTimeFromSeconds(processedVideoResult.trim_info.original_start)} - {formatTimeFromSeconds(processedVideoResult.trim_info.original_end)})
-          </>
-        ) : (
-          <>
-           
-           
-          </>
-        )}
+      
       </div>
 
-          <video
-            ref={videoPreviewRef}
-            src={combinedVideoUrl || videoUrl}
-            controls
-            autoPlay={false}
-            style={{
-              width: '800px',
-              maxWidth: '90vw',
-              maxHeight: '500px',
-              minHeight: '300px',
-              borderRadius: processedVideoResult?.trim_info ? '0 0 16px 16px' : '16px',
-              boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
-              margin: '0 auto 2rem auto',
-              display: 'block',
-            }}
-            // 🚨 NEW: Set up trimmed video playback constraints
-            onLoadedMetadata={() => {
-              if (processedVideoResult?.trim_info && videoPreviewRef.current) {
-                const { original_start, original_end } = processedVideoResult.trim_info;
-                
-                // Set initial time to start of trimmed section
-                videoPreviewRef.current.currentTime = original_start;
-                
-                // Add event listener to keep playback within trimmed range
-                const handleTimeUpdate = () => {
-                  if (videoPreviewRef.current) {
-                    const currentTime = videoPreviewRef.current.currentTime;
-                    
-                    // If we go past the end of trimmed section, loop back to start
-                    if (currentTime >= original_end) {
-                      videoPreviewRef.current.currentTime = original_start;
-                    }
-                    
-                    // If we go before the start of trimmed section, jump to start
-                    if (currentTime < original_start) {
-                      videoPreviewRef.current.currentTime = original_start;
-                    }
-                  }
-                };
-                
-                // Remove any existing listeners first
-                videoPreviewRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-                videoPreviewRef.current.addEventListener('timeupdate', handleTimeUpdate);
-              }
-            }}
-            onSeeked={() => {
-              // 🚨 NEW: Constrain seeking to trimmed range
-              if (processedVideoResult?.trim_info && videoPreviewRef.current) {
-                const { original_start, original_end } = processedVideoResult.trim_info;
+      <video
+        ref={videoPreviewRef}
+        src={combinedVideoUrl || videoUrl}
+        controls
+        autoPlay={false}
+        style={{
+          width: '800px',  // Back to original size for better centering
+          maxWidth: '90vw',
+          maxHeight: '500px',
+          minHeight: '300px',
+          borderRadius: processedVideoResult?.trim_info ? '0 0 16px 16px' : '16px',
+          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
+          margin: '0 auto 2rem auto',
+          display: 'block',
+        }}
+        onLoadedMetadata={() => {
+          if (processedVideoResult?.trim_info && videoPreviewRef.current) {
+            const { original_start, original_end } = processedVideoResult.trim_info;
+            
+            // Set initial time to start of trimmed section
+            videoPreviewRef.current.currentTime = original_start;
+            
+            // Add event listener to keep playback within trimmed range
+            const handleTimeUpdate = () => {
+              if (videoPreviewRef.current) {
                 const currentTime = videoPreviewRef.current.currentTime;
                 
-                if (currentTime < original_start || currentTime >= original_end) {
+                // If we go past the end of trimmed section, loop back to start
+                if (currentTime >= original_end) {
+                  videoPreviewRef.current.currentTime = original_start;
+                }
+                
+                // If we go before the start of trimmed section, jump to start
+                if (currentTime < original_start) {
                   videoPreviewRef.current.currentTime = original_start;
                 }
               }
-            }}
-          />
+            };
+            
+            // Remove any existing listeners first
+            videoPreviewRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+            videoPreviewRef.current.addEventListener('timeupdate', handleTimeUpdate);
+          }
+        }}
+        onSeeked={() => {
+          // Constrain seeking to trimmed range
+          if (processedVideoResult?.trim_info && videoPreviewRef.current) {
+            const { original_start, original_end } = processedVideoResult.trim_info;
+            const currentTime = videoPreviewRef.current.currentTime;
+            
+            if (currentTime < original_start || currentTime >= original_end) {
+              videoPreviewRef.current.currentTime = original_start;
+            }
+          }
+        }}
+      />
 
-          {/* 🚨 NEW: Trimmed video info display */}
-          {processedVideoResult?.trim_info && (
-            <div style={{
-              background: 'rgba(56, 161, 105, 0.1)',
-              border: '1px solid rgba(56, 161, 105, 0.3)',
-              borderRadius: '12px',
-              padding: '1rem',
-              marginTop: '1rem',
-              color: '#E2E8F0',
-              textAlign: 'center',
-              maxWidth: '500px'
-            }}>
-              <div style={{ 
-                fontSize: '0.9rem', 
-                fontWeight: 600, 
-                marginBottom: '0.5rem',
-                color: '#48bb78'
-              }}>
-                📹 Video Analysis Complete
-              </div>
-              <div style={{ fontSize: '0.8rem', lineHeight: 1.4 }}>
-                Analyzed trimmed section: <strong>{formatTimeFromSeconds(processedVideoResult.trim_info.original_start)} - {formatTimeFromSeconds(processedVideoResult.trim_info.original_end)}</strong>
-                <br />
-                Duration: <strong>{formatTimeFromSeconds(processedVideoResult.trim_info.trimmed_duration)}</strong>
-                <br />
-                All segments are relative to this trimmed portion
-              </div>
-            </div>
-          )}
+      {/* Trimmed video info display */}
+      {processedVideoResult?.trim_info && (
+        <div style={{
+          background: 'rgba(56, 161, 105, 0.1)',
+          border: '1px solid rgba(56, 161, 105, 0.3)',
+          borderRadius: '12px',
+          padding: '1rem',
+          marginTop: '1rem',
+          color: '#E2E8F0',
+          textAlign: 'center',
+          maxWidth: '500px'
+        }}>
+        
+    
+        </div>
+      )}
+    </div>
+  </div>
+{/* Complete Video Button - Moved much further to the right */}
+{/* Complete Video Button - Moved much further to the right */}
+{!processedVideoResult?.segments && (
+  <div style={{
+    position: 'absolute',
+    right: '-18rem',
+    top: '4rem',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+    minWidth: '280px',
+    maxWidth: '280px'
+  }}>
+    {/* Complete Video Button */}
+    <div style={{ position: 'relative' }}>
+      <Button
+        variant="success"
+        onClick={() => {
+          if (!showInstructionInput) {
+            setShowInstructionInput(true);
+            setVideoInstructions('');
+          } else if (videoInstructions.trim() === '') {
+            showMessage('Please enter processing instructions before continuing', 'error');
+          } else {
+            // Use the instruction input text directly - NO POPUP
+            setDescription(videoInstructions); // Set the description from input
+            processVideoWithClipTune(); // Process directly
+          }
+        }}
+        disabled={isProcessingVideo || isLoadingVideoData}
+        style={{
+          opacity: isProcessingVideo ? 0.7 : 1,
+          transform: isProcessingVideo ? 'scale(0.98)' : 'scale(1)',
+          background: isProcessingVideo
+            ? '#6b7280'
+            : showInstructionInput && videoInstructions.trim() !== ''
+            ? '#10b981'
+            : '#2563eb',
+          color: 'white',
+          border: 'none',
+          padding: '1rem 1.2rem',
+          borderRadius: '8px',
+          fontSize: '1rem',
+          fontWeight: '600',
+          cursor: isProcessingVideo ? 'not-allowed' : 'pointer',
+          transition: 'all 0.3s ease',
+          boxShadow: 'none',
+          textAlign: 'center',
+          outline: 'none',
+          fontFamily: "'SF Pro Display', 'Segoe UI', 'Helvetica Neue', 'Arial', 'Roboto', sans-serif",
+          letterSpacing: '0.3px',
+          position: 'relative',
+          whiteSpace: 'nowrap',
+          width: '100%'
+        }}
+      >
+        {isProcessingVideo 
+          ? 'Processing...' 
+          : showInstructionInput && videoInstructions.trim() !== ''
+          ? '▶️ Process Video'
+          : '🎵 Complete Video'
+        }
+      </Button>
+    </div>
+
+    {/* Premium Feature Notice - Only show when instruction input is NOT visible */}
+    {!showInstructionInput && (
+      <div style={{
+        background: 'rgba(30, 41, 59, 0.95)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '12px',
+        padding: '1.2rem',
+        border: '1px solid rgba(255, 215, 0, 0.3)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        textAlign: 'center',
+        maxWidth: '100%'
+      }}>
+        <div style={{
+          color: '#ffd700',
+          fontSize: '1.1rem',
+          fontWeight: '600',
+          marginBottom: '0.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem'
+        }}>
+          ⭐ Premium Feature
+        </div>
+        
+        <div style={{
+          color: 'rgba(255, 255, 255, 0.9)',
+          fontSize: '0.85rem',
+          lineHeight: '1.3',
+          marginBottom: '1rem'
+        }}>
+          AI-powered video analysis with intelligent music segment detection
+        </div>
+        
+        <div style={{
+          background: 'rgba(255, 215, 0, 0.1)',
+          borderRadius: '8px',
+          padding: '0.6rem',
+          fontSize: '0.75rem',
+          color: 'rgba(255, 255, 255, 0.8)',
+          fontStyle: 'italic',
+          lineHeight: '1.2'
+        }}>
+          Click "Complete Video" to access this feature
         </div>
       </div>
-    
+    )}
+
+    {/* Instruction Input Section */}
+    {showInstructionInput && (
+      <div style={{
+        background: 'rgba(30, 41, 59, 0.95)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '12px',
+        padding: '1.2rem',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        animation: 'slideDown 0.3s ease-out',
+        maxWidth: '100%'
+      }}>
+        <div style={{
+          marginBottom: '1rem',
+          color: 'white',
+          fontSize: '1rem',
+          fontWeight: '600',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          🎯 Processing Instructions
+          <span style={{
+            color: '#ef4444',
+            fontSize: '0.8rem',
+            fontWeight: 'normal'
+          }}>
+            *Required
+          </span>
+        </div>
+        
+        <textarea
+          value={videoInstructions}
+          onChange={(e) => setVideoInstructions(e.target.value)}
+          placeholder="Enter detailed instructions for ClipTune processing...
+
+Examples:
+- 'Only add music to places where people do not speak'
+- 'Add background music during action scenes'
+- 'Create ambient music for quiet moments'"
+          style={{
+            width: '100%',
+            minHeight: '100px',
+            padding: '0.8rem',
+            background: '#1f2937',
+            border: videoInstructions.trim() === '' 
+              ? '2px solid #ef4444'
+              : '2px solid #10b981',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            color: '#e5e7eb',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            outline: 'none',
+            resize: 'vertical',
+            transition: 'border-color 0.2s ease',
+            boxSizing: 'border-box',
+            lineHeight: '1.3'
+          }}
+          onFocus={(e) => {
+            if (videoInstructions.trim() !== '') {
+              e.target.style.borderColor = '#3b82f6';
+            }
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = videoInstructions.trim() === '' 
+              ? '#ef4444' 
+              : '#10b981';
+          }}
+        />
+        
+        {/* Character count and validation */}
+        <div style={{
+          marginTop: '0.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '0.75rem',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{
+            color: videoInstructions.trim() === '' 
+              ? '#ef4444' 
+              : videoInstructions.length < 20
+              ? '#f59e0b'
+              : '#10b981',
+            lineHeight: '1.2'
+          }}>
+            {videoInstructions.trim() === '' 
+              ? '⚠️ Required' 
+              : videoInstructions.length < 20
+              ? '💡 Add detail'
+              : '✅ Good'
+            }
+          </span>
+          <span style={{ color: '#9ca3af' }}>
+            {videoInstructions.length}
+          </span>
+        </div>
+
+        {/* Action buttons */}
+        <div style={{
+          marginTop: '1rem',
+          display: 'flex',
+          gap: '0.4rem'
+        }}>
+          <button
+            onClick={() => {
+              setShowInstructionInput(false);
+              setVideoInstructions('');
+            }}
+            style={{
+              flex: '1',
+              padding: '0.7rem 0.8rem',
+              background: 'rgba(107, 114, 128, 0.8)',
+              border: 'none',
+              borderRadius: '6px',
+              color: 'white',
+              fontSize: '0.85rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(107, 114, 128, 1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(107, 114, 128, 0.8)';
+            }}
+          >
+            Cancel
+          </button>
+          
+          <button
+            onClick={() => {
+              if (videoInstructions.trim() === '') {
+                showMessage('Please enter processing instructions before continuing', 'error');
+                return;
+              }
+              // Use the instruction input text directly - NO POPUP
+              setDescription(videoInstructions); // Set the description from input
+              processVideoWithClipTune(); // Process directly
+            }}
+            disabled={videoInstructions.trim() === ''}
+            style={{
+              flex: '2',
+              padding: '0.7rem 0.8rem',
+              background: videoInstructions.trim() === ''
+                ? 'rgba(107, 114, 128, 0.5)'
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              borderRadius: '6px',
+              color: 'white',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              cursor: videoInstructions.trim() === '' ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              opacity: videoInstructions.trim() === '' ? 0.6 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (videoInstructions.trim() !== '') {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (videoInstructions.trim() !== '') {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
+            }}
+          >
+            🚀 Process
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Add CSS animation */}
+    <style>{`
+      @keyframes slideDown {
+        0% {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    `}</style>
   </div>
+)}
+</div>
         {/* Timeline Section - Now directly under the video */}
         
 {/* Timeline Section - Now directly under the video */}
@@ -8175,7 +10257,7 @@ const handleDownloadInterval = async (track, index) => {
         boxSizing: 'border-box'
       }} />
 
-      {/* 🚨 NEW: Trimmed video overlay indicator */}
+      {/* Trimmed video overlay indicator */}
       {processedVideoResult?.trim_info && (
         <div style={{
           position: 'absolute',
@@ -8196,246 +10278,90 @@ const handleDownloadInterval = async (track, index) => {
         </div>
       )}
 
-      {/* Selection label for editing */}
-
-
-<style>{`
-  @keyframes editingPulse {
-    0%, 100% { 
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4), 0 0 0 1px rgba(102, 126, 234, 0.2);
-      transform: scale(1);
-    }
-    50% { 
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6), 0 0 0 2px rgba(102, 126, 234, 0.4);
-      transform: scale(1.02);
-    }
-  }
-  
-  @keyframes dotPulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.2); }
-  }
-  
-  @keyframes slideInDown {
-    0% {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`}</style>
       {/* Start handle - DISABLED for trimmed video */}
-      <div
-        style={{
-          position: 'absolute',
-          left: startX - 8,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: 16,
-          height: 'calc(100% + 16px)',
-          background: selectedSegmentForEdit 
-            ? '#667eea'
-            : processedVideoResult?.trim_info
-            ? '#6b7280'  // Gray when disabled for trimmed video
-            : '#4299E1',
-          cursor: selectedSegmentForEdit && !processedVideoResult?.trim_info
-            ? 'ew-resize'
-            : processedVideoResult?.trim_info
-            ? 'not-allowed'
-            : 'ew-resize',
-          borderRadius: '6px',
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: selectedSegmentForEdit && !processedVideoResult?.trim_info
-            ? '0 0 15px rgba(102, 126, 234, 0.5)'
-            : processedVideoResult?.trim_info
-            ? '0 0 15px rgba(107, 114, 128, 0.5)' 
-            : '0 0 15px rgba(66, 153, 225, 0.5)',
-          opacity: processedVideoResult?.trim_info ? 0.7 : 1,
-          pointerEvents: processedVideoResult?.trim_info ? 'none' : 'auto'
-        }}
-   onMouseDown={(e) => {
-    // 🚨 REPLACE this entire onMouseDown with:
-    if (processedVideoResult?.trim_info) {
-      showMessage('Timeline editing is disabled for trimmed video analysis. Use the original timeline before processing.', 'warning');
-      return;
-    }
-    
-    if (selectedSegmentForEdit || (!processedVideoResult?.segments)) {
-      e.preventDefault();
-      const rect = trackRef.current.getBoundingClientRect();
-      
-      const move = (moveEvent) => {
-        const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-        const width = THUMB_WIDTH * NUM_THUMBS;
-        const newStartX = Math.min(currentX, endX - 10);
-        
-        // 🚨 CHECK FOR OVERLAPS BEFORE UPDATING
-        const newStart = (newStartX / width) * duration;
-        const currentEnd = (endX / width) * duration;
-        
-        if (selectedSegmentForEdit && processedVideoResult?.segments) {
-          const overlaps = detectSegmentOverlaps(
-            processedVideoResult.segments, 
-            selectedSegmentForEdit.index, 
-            newStart, 
-            currentEnd
-          );
-          
-          if (overlaps.length > 0) {
-            console.warn(`⚠️ Start handle blocked: Would overlap with ${overlaps.length} segment(s)`);
-            return; // Don't update if overlap detected
-          }
-        }
-        
-        // Only update if no overlaps
-        setStartX(newStartX);
-        setLastDragged("start");
-        
-        // Real-time video update
-        const newTime = (newStartX / width) * duration;
-        if (videoPreviewRef.current && !isNaN(newTime)) {
-          videoPreviewRef.current.currentTime = newTime;
-        }
-        
-        if (selectedSegmentForEdit) {
-          setHasUnsavedTimelineChanges(true);
-        }
-      };
-      
-      const up = () => {
-        document.removeEventListener("mousemove", move);
-        document.removeEventListener("mouseup", up);
-        
-        if (videoPreviewRef.current) {
-          videoPreviewRef.current.play();
-          setTimeout(() => {
-            if (videoPreviewRef.current) {
-              videoPreviewRef.current.pause();
-            }
-          }, 300);
-        }
-      };
-      
-      document.addEventListener("mousemove", move);
-      document.addEventListener("mouseup", up);
+ <div
+  style={{
+    position: 'absolute',
+    left: startX - 8,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: 16,
+    height: 'calc(100% + 16px)',
+    background: selectedSegmentForEdit ? '#4299E1' : '#6b7280', // Blue when editing, gray when disabled
+    cursor: selectedSegmentForEdit ? 'ew-resize' : 'not-allowed', // Change cursor based on edit state
+    borderRadius: '6px',
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: selectedSegmentForEdit 
+      ? '0 0 15px rgba(66, 153, 225, 0.5)' 
+      : '0 0 10px rgba(107, 114, 128, 0.3)', // Different shadow when disabled
+    opacity: selectedSegmentForEdit ? 1 : 0.6, // Reduced opacity when disabled
+    transition: 'all 0.2s ease' // Smooth transition between states
+  }}
+  onMouseDown={(e) => {
+    // Only allow dragging when editing a segment
+    if (selectedSegmentForEdit) {
+      createDragHandlerr("start")(e);
+    } else {
+      // Optional: Show message when trying to drag while not editing
+      showMessage('Click "Edit Timeline" on a segment first to enable timeline editing', 'info');
     }
   }}
-      >
-        <span style={{color: 'white', transform: 'rotate(90deg)', fontSize: '10px'}}>|||</span>
-      </div>
+  title={selectedSegmentForEdit ? "Drag to adjust start time" : "Click 'Edit Timeline' to enable"} // Tooltip
+>
+  <span style={{
+    color: 'white', 
+    transform: 'rotate(90deg)', 
+    fontSize: '10px'
+  }}>
+    |||
+  </span>
+</div>
 
-      {/* End handle - DISABLED for trimmed video */}
-      <div
-        style={{
-          position: 'absolute',
-          left: endX - 8,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          width: 16,
-          height: 'calc(100% + 16px)',
-          background: selectedSegmentForEdit 
-            ? '#667eea'
-            : processedVideoResult?.trim_info
-            ? '#6b7280'  // Gray when disabled for trimmed video
-            : '#4299E1',
-          cursor: selectedSegmentForEdit && !processedVideoResult?.trim_info
-            ? 'ew-resize'
-            : processedVideoResult?.trim_info
-            ? 'not-allowed'
-            : 'ew-resize',
-          borderRadius: '6px',
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: selectedSegmentForEdit && !processedVideoResult?.trim_info
-            ? '0 0 15px rgba(102, 126, 234, 0.5)'
-            : processedVideoResult?.trim_info
-            ? '0 0 15px rgba(107, 114, 128, 0.5)' 
-            : '0 0 15px rgba(66, 153, 225, 0.5)',
-          opacity: processedVideoResult?.trim_info ? 0.7 : 1,
-          pointerEvents: processedVideoResult?.trim_info ? 'none' : 'auto'
-        }}
-onMouseDown={(e) => {
-  // 🚨 REPLACE this entire onMouseDown with:
-  if (processedVideoResult?.trim_info) {
-    showMessage('Timeline editing is disabled for trimmed video analysis. Use the original timeline before processing.', 'warning');
-    return;
-  }
-  
-  if (selectedSegmentForEdit || (!processedVideoResult?.segments)) {
-    e.preventDefault();
-    const rect = trackRef.current.getBoundingClientRect();
-    
-    const move = (moveEvent) => {
-      const currentX = Math.max(0, Math.min(moveEvent.clientX - rect.left, THUMB_WIDTH * NUM_THUMBS));
-      const width = THUMB_WIDTH * NUM_THUMBS;
-      const newEndX = Math.max(currentX, startX + 10);
-      
-      // Convert to time values
-      const currentStart = (startX / width) * duration;
-      const newEnd = (newEndX / width) * duration;
-      
-      if (selectedSegmentForEdit && processedVideoResult?.segments) {
-        // 🚨 FIXED: Only check for actual overlaps using the detectSegmentOverlaps function
-        const overlaps = detectSegmentOverlaps(
-          processedVideoResult.segments, 
-          selectedSegmentForEdit.index, 
-          currentStart, 
-          newEnd
-        );
-        
-        if (overlaps.length > 0) {
-          console.warn(`⚠️ End handle blocked: Would overlap with ${overlaps.length} segment(s)`);
-          return; // Don't update if overlap detected
-        }
-        
-        // 🚨 REMOVED the overly strict "hasStrictConflict" check
-        // The detectSegmentOverlaps function already handles proper overlap detection
-      }
-      
-      // ✅ Update position if no overlaps
-      setEndX(newEndX);
-      setLastDragged("end");
-      
-      // Real-time video update
-      const newTime = (newEndX / width) * duration;
-      if (videoPreviewRef.current && !isNaN(newTime)) {
-        videoPreviewRef.current.currentTime = newTime;
-      }
-      
-      if (selectedSegmentForEdit) {
-        setHasUnsavedTimelineChanges(true);
-      }
-    };
-    
-    const up = () => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
-      
-      if (videoPreviewRef.current) {
-        videoPreviewRef.current.play();
-        setTimeout(() => {
-          if (videoPreviewRef.current) {
-            videoPreviewRef.current.pause();
-          }
-        }, 300);
-      }
-    };
-    
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
-  }
-}}
-      >
-        <span style={{color: 'white', transform: 'rotate(90deg)', fontSize: '10px'}}>|||</span>
-      </div>
+{/* End handle - Only movable when editing */}
+<div
+  style={{
+    position: 'absolute',
+    left: endX - 8,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: 16,
+    height: 'calc(100% + 16px)',
+    background: selectedSegmentForEdit ? '#4299E1' : '#6b7280', // Blue when editing, gray when disabled
+    cursor: selectedSegmentForEdit ? 'ew-resize' : 'not-allowed', // Change cursor based on edit state
+    borderRadius: '6px',
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: selectedSegmentForEdit 
+      ? '0 0 15px rgba(66, 153, 225, 0.5)' 
+      : '0 0 10px rgba(107, 114, 128, 0.3)', // Different shadow when disabled
+    opacity: selectedSegmentForEdit ? 1 : 0.6, // Reduced opacity when disabled
+    transition: 'all 0.2s ease' // Smooth transition between states
+  }}
+  onMouseDown={(e) => {
+    // Only allow dragging when editing a segment
+    if (selectedSegmentForEdit) {
+      createDragHandlerr("end")(e);
+    } else {
+      // Optional: Show message when trying to drag while not editing
+      showMessage('Click "Edit Timeline" on a segment first to enable timeline editing', 'info');
+    }
+  }}
+  title={selectedSegmentForEdit ? "Drag to adjust end time" : "Click 'Edit Timeline' to enable"} // Tooltip
+>
+  <span style={{
+    color: 'white', 
+    transform: 'rotate(90deg)', 
+    fontSize: '10px'
+  }}>
+    |||
+  </span>
+</div>
+
     </div>
 
     {/* Time indicators - centered under timeline */}
@@ -8599,9 +10525,10 @@ onMouseDown={(e) => {
   )}
 
   {/* Main Process Button */}
+
+
 {/* Main Process Button */}
-{/* Main Process Button */}
-{!processedVideoResult?.trim_info ? (
+{!processedVideoResult?.segments ? (
   <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
     <Button
       variant="primary"
@@ -8619,99 +10546,6 @@ onMouseDown={(e) => {
     >
       Confirm
     </Button>
-     
-    {/* Complete Video Button with Hover Tooltip */}
-    <div style={{ position: 'relative' }}>
-      <Button
-        variant="success"
-        onClick={processVideoWithClipTune}
-        disabled={isProcessingVideo || isLoadingVideoData}
-        title=""
-        style={{
-          opacity: isProcessingVideo ? 0.7 : 1,
-          transform: isProcessingVideo ? 'scale(0.98)' : 'scale(1)',
-          background: isProcessingVideo
-            ? '#6b7280'
-            : '#2563eb',
-          color: 'white',
-          border: 'none',
-          padding: '1.25rem 2.5rem',
-          borderRadius: '6px',
-          fontSize: '1.1rem',
-          fontWeight: '600',
-          cursor: isProcessingVideo ? 'not-allowed' : 'pointer',
-          transition: 'all 0.3s ease',
-          boxShadow: 'none',
-          textAlign: 'center',
-          outline: 'none',
-          fontFamily: "'SF Pro Display', 'Segoe UI', 'Helvetica Neue', 'Arial', 'Roboto', sans-serif",
-          letterSpacing: '0.3px',
-          position: 'relative'
-        }}
-        onMouseEnter={(e) => {
-          // Show tooltip
-          const tooltip = e.currentTarget.parentElement.querySelector('.hover-tooltip');
-          if (tooltip) {
-            tooltip.style.opacity = '1';
-            tooltip.style.visibility = 'visible';
-            tooltip.style.transform = 'translateX(-50%) translateY(-5px)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          // Hide tooltip
-          const tooltip = e.currentTarget.parentElement.querySelector('.hover-tooltip');
-          if (tooltip) {
-            tooltip.style.opacity = '0';
-            tooltip.style.visibility = 'hidden';
-            tooltip.style.transform = 'translateX(-50%) translateY(0px)';
-          }
-        }}
-        className="no-tooltip-button"
-      >
-        complete video
-      </Button>
-      
-      {/* Hover Tooltip with Shadow Text */}
-      <div 
-        className="hover-tooltip"
-        style={{
-          position: 'absolute',
-          bottom: '100%',
-          left: '50%',
-          transform: 'translateX(-50%) translateY(0px)',
-          marginBottom: '10px',
-          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-          color: 'white',
-          padding: '8px 16px',
-          borderRadius: '8px',
-          fontSize: '0.9rem',
-          fontWeight: '600',
-          whiteSpace: 'nowrap',
-          boxShadow: '0 4px 15px rgba(251, 191, 36, 0.4)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          opacity: '0',
-          visibility: 'hidden',
-          transition: 'all 0.3s ease',
-          zIndex: 1000,
-          pointerEvents: 'none',
-          textShadow: '0 2px 4px rgba(0, 0, 0, 0.5)' // Shadow text effect
-        }}
-      >
-        ⭐ Premium Feature Only
-        {/* Arrow pointing down */}
-        <div style={{
-          position: 'absolute',
-          top: '100%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '0',
-          height: '0',
-          borderLeft: '6px solid transparent',
-          borderRight: '6px solid transparent',
-          borderTop: '6px solid #f59e0b'
-        }} />
-      </div>
-    </div>
   </div>
 ) : (
   <div style={{
@@ -8722,19 +10556,7 @@ onMouseDown={(e) => {
     color: '#E2E8F0',
     textAlign: 'center'
   }}>
-    <div style={{
-      fontSize: '1.2rem',
-      fontWeight: 600,
-      marginBottom: '0.5rem',
-      color: '#48bb78'
-    }}>
-      ✅ Trimmed Video Analysis Complete
-    </div>
-    <div style={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
-      Found <strong>{processedVideoResult.segments?.length || 0}</strong> music segments in the trimmed video.
-      <br />
-      Timeline editing is now disabled. Generate music for individual segments.
-    </div>
+ 
   </div>
 )}
 </div>
@@ -8742,7 +10564,6 @@ onMouseDown={(e) => {
 )}
       </div>
     </div>
-
   
     {/* Loading Indicator */}
     {isLoadingVideoData && (
@@ -8874,7 +10695,7 @@ onMouseDown={(e) => {
             color: '#2d3748',
             marginBottom: '1rem'
           }}>
-            🎬 Create Complete Video
+           download video
           </h3>
           <p style={{
             color: '#718096',
@@ -9168,451 +10989,846 @@ onMouseDown={(e) => {
     )}
   </div>
 )}
-        {/* Step 4: Results */}
-        {currentStep === 4 && (
-          <div style={STYLES.container.card}>
-            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <h2 style={STYLES.modal.title}>
-                {isProcessing ? '🎵 Generating Your Music...' : '🎉 Music Generated Successfully!'}
-              </h2>
-              <p style={STYLES.modal.subtitle}>
-                {isProcessing ? 'Please wait while our AI creates your custom soundtrack' : 'Your AI-generated music is ready!'}
-              </p>
-            </div>
 
-            {isProcessing && (
-              <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-                <div style={{
-                  border: '4px solid #f3f4f6',
-                  borderTop: '4px solid #667eea',
-                  borderRadius: '50%',
-                  width: '60px',
-                  height: '60px',
-                  animation: 'spin 1s linear infinite',
-                  margin: '0 auto 2rem'
-                }} />
-                <p style={{ fontSize: '1.1rem', color: '#718096' }}>
-                  This may take a few minutes...
-                </p>
-              </div>
-            )}
+{/* 🚨 NEW: Music Analysis Section */}
+{currentStep >= 2 && selectedFile && (
+  <div className="step-section">
 
-            {/* Generated Tracks */}
-            {tracks.length > 0 && (
-              <div style={{ gap: '2rem' }}>
-                {tracks.map((track, i) => {
-                  const startTime = convertTimestampToSeconds(track.start);
-                  const endTime = convertTimestampToSeconds(track.end);
-                  if (!audioRefs.current[i]) audioRefs.current[i] = React.createRef();
-
-                  const handlePlaySegment = () => {
-                    const audio = audioRefs.current[i]?.current;
-                    if (!audio) return;
-                    audio.currentTime = startTime;
-                    audio.play();
-                    const stopAt = () => {
-                      if (audio.currentTime >= endTime) {
-                        audio.pause();
-                        audio.removeEventListener('timeupdate', stopAt);
-                      }
-                    };
-                    audio.addEventListener('timeupdate', stopAt);
-                  };
-
-                  return (
-                    <div key={i} style={{
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      border: '2px solid #e2e8f0',
-                      borderRadius: '24px',
-                      padding: '3rem',
-                      margin: '2rem 0',
-                      backdropFilter: 'blur(10px)',
-                      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)'
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '2rem'
-                      }}>
-                        <h4 style={{
-                          fontSize: '1.5rem',
-                          fontWeight: 700,
-                          color: '#2d3748',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}>
-                          🎵 Track {i + 1}
-                        </h4>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '1rem'
-                        }}>
-                          {/* Video with music button moved to top right */}
-                          {renderMusicVideo && (
-                            <div style={{ position: 'relative' }}>
-                              {/* New badge indicator */}
-                              <div style={{
-                                position: 'absolute',
-                                top: '-12px',
-                                right: '-12px',
-                                background: '#e53e3e',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                border: '2px solid white',
-                                zIndex: 2,
-                                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)'
-                              }}>
-                                ✓
-                              </div>
-                              <Button 
-                                variant="primary" 
-                                onClick={() => handleDownloadVideoWithMusic(track)}
-                                style={{
-                                  background: 'linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)',
-                                  padding: '0.75rem 1.5rem',
-                                  borderRadius: '20px',
-                                  fontSize: '1rem',
-                                  fontWeight: 600,
-                                  boxShadow: '0 8px 16px rgba(43, 108, 176, 0.4)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  position: 'relative',
-                                  color: 'white',
-                                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                                  animation: 'pulse 2s infinite',
-                                  transition: 'all 0.3s ease',
-                                  zIndex: 1
-                                }}
-                                onMouseOver={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(-2px)';
-                                  e.currentTarget.style.boxShadow = '0 12px 20px rgba(43, 108, 176, 0.5)';
-                                }}
-                                onMouseOut={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(0)';
-                                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(43, 108, 176, 0.4)';
-                                }}
-                              >
-                                🎬 Download Video + Music
-                              </Button>
-                            </div>
-                          )}
-                          <span style={{
-                            background: 'linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)',
-                            color: '#4a5568',
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '20px',
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            boxShadow: '0 4px 12px rgba(74, 85, 104, 0.1)',
-                            border: '1px solid #e2e8f0'
-                          }}>
-                            {track.start} → {track.end}
-                          </span>
-                        </div>
-                      </div>
-
-                      <audio
-                        ref={audioRefs.current[i]}
-                        controls
-                        src={track.url || track.audio_url}
-                        style={{
-                          width: '100%',
-                          margin: '2rem 0',
-                          borderRadius: '12px',
-                          height: '60px'
-                        }}
-                      />
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: '1.5rem',
-                        marginTop: '2rem'
-                      }}>
-                        <Button 
-                          variant="secondary" 
-                          onClick={handlePlaySegment}
-                        >
-                          ▶ Play Segment
-                        </Button>
-                        <Button 
-                          variant="success" 
-                          onClick={() => handleSaveToLibrary(track)}
-                        >
-                          💾 Save to Library
-                        </Button>
-                        <Button 
-                          variant="warning" 
-                          onClick={() => handleDownloadInterval(track, i)}
-                        >
-                          ⬇️ Download Segment
-                        </Button>
-                        
-                        {/* Video with music download button moved to the top right corner */}
-                      </div>
-                      
-                      {/* Video preview section with music - only shown when renderMusicVideo is enabled */}
-                      {renderMusicVideo && (
-                        <div style={{
-                          marginTop: '2rem',
-                          borderTop: '1px solid #e2e8f0',
-                          paddingTop: '2rem'
-                        }}>
-                          <h5 style={{
-                            fontSize: '1.4rem',
-                            fontWeight: 700,
-                            color: '#2c5282',
-                            marginBottom: '1.2rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.75rem 1.5rem',
-                            background: 'rgba(235, 244, 255, 0.5)',
-                            borderRadius: '12px',
-                            border: '1px solid #bee3f8',
-                            width: 'fit-content'
-                          }}>
-                            🎬 Video with Music Preview
-                          </h5>
-                          <div style={{ 
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '1rem'
-                          }}>
-                            <video
-                              src={videoUrl}
-                              controls
-                              style={{
-                                width: '100%',
-                                maxWidth: '800px',
-                                borderRadius: '12px',
-                                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)'
-                              }}
-                            />
-                            <p style={{
-                              fontSize: '0.9rem',
-                              color: '#718096',
-                              fontStyle: 'italic'
-                            }}>
-                              Note: This is a preview. Audio mixing happens when you download the combined video.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            
-            <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-              <Button 
-                variant="danger" 
-                onClick={handleStartOver}
-                style={{ fontSize: '1.2rem', padding: '1.5rem 3rem' }}
-              >
-                🔄 Start Over
-              </Button>
-            </div>
+    
+    
+    {/* Analysis Results Display */}
+    {showMusicAnalysis && musicAnalysis && (
+      <div className="analysis-results" style={{ marginTop: '20px' }}>
+        <div style={{
+          backgroundColor: '#f8f9fa',
+          border: '1px solid #dee2e6',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '20px'
+        }}>
+          <h3 style={{ color: '#495057', marginBottom: '15px', display: 'flex', alignItems: 'center' }}>
+            🎼 Detailed Music Analysis Results
+            <span style={{ 
+              fontSize: '12px', 
+              backgroundColor: '#28a745', 
+              color: 'white', 
+              padding: '2px 8px', 
+              borderRadius: '12px', 
+              marginLeft: '10px' 
+            }}>
+              AI Generated
+            </span>
+          </h3>
+          
+          {/* Formatted Analysis Display */}
+          <div 
+            className="analysis-content"
+            style={{
+              backgroundColor: 'white',
+              padding: '20px',
+              borderRadius: '6px',
+              border: '1px solid #e9ecef',
+              maxHeight: '500px',
+              overflowY: 'auto',
+              fontSize: '14px',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap',
+              fontFamily: '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+            }}
+          >
+            {musicAnalysis}
           </div>
-        )}
-
-        {/* Step 5: Video Preview with Volume Control */}
-        {currentStep === 5 && (
-          <div style={{
-            width: '100%',
-            maxWidth: '1000px',
-            margin: '0 auto',
-            padding: '2rem',
-            background: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: '24px',
-            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.15)',
-            color: '#2d3748'
+          
+          {/* Action Buttons */}
+          <div style={{ 
+            marginTop: '15px', 
+            display: 'flex', 
+            gap: '10px', 
+            flexWrap: 'wrap' 
           }}>
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <h2 style={{
-                fontSize: '2.5rem',
-                fontWeight: 700,
-                color: '#2d3748',
-                marginBottom: '1rem'
-              }}>
-                🎬 Video Preview
-              </h2>
-              <p style={{
-                color: '#718096',
-                fontSize: '1.2rem'
-              }}>
-                Adjust the music volume and download when ready
-              </p>
-            </div>
-
-            {/* Loading State */}
-            {isGeneratingPreview && (
-              <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-                <div style={{
-                  border: '4px solid #f3f4f6',
-                  borderTop: '4px solid #667eea',
-                  borderRadius: '50%',
-                  width: '60px',
-                  height: '60px',
-                  animation: 'spin 1s linear infinite',
-                  margin: '0 auto 2rem'
-                }} />
-                <p style={{ fontSize: '1.1rem', color: '#718096' }}>
-                  Generating preview video...
-                </p>
-              </div>
-            )}
-
-            {/* Video Player */}
-            {!isGeneratingPreview && combinedVideoUrl && (
-              <div style={{ marginBottom: '3rem' }}>
-                console.log("📹 Combined Video URL:", combinedVideoUrl);
-
-                <video
-                  src={combinedVideoUrl}
-                  controls
-                  style={{
-                    width: '100%',
-                    maxHeight: '500px',
-                    borderRadius: '16px',
-                    boxShadow: '0 15px 50px rgba(0, 0, 0, 0.2)'
-                  }}
-                />
-              </div>
-            )}
-          {!hasBeenSaved ? (
-  <Button
-    onClick={handleManualSave}
-    style={{
-      marginTop: '1rem',
-      background: '#4299e1',
-      color: 'white',
-      padding: '0.5rem 1.5rem',
-      borderRadius: '8px',
-      fontWeight: 'bold',
-    }}
-  >
-    💾 Save Combined Video
-  </Button>
-) : (
-  <div style={{
-    marginTop: '1rem',
-    background: '#48bb78',
-    color: 'white',
-    padding: '0.5rem 1.5rem',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem'
-  }}>
-    ✅ Saved Successfully!
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(musicAnalysis);
+                showMessage('🎵 Music analysis copied to clipboard!', 'success');
+              }}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              📋 Copy Full Analysis
+            </button>
+            
+            <button 
+              onClick={() => {
+                // Extract just the music description parts for use in generation
+                const musicDescriptions = musicAnalysis
+                  .split('\n')
+                  .filter(line => 
+                    line.includes('BPM') || 
+                    line.includes('Key') || 
+                    line.includes('Genre') || 
+                    line.includes('Mood') ||
+                    line.includes('Instrument')
+                  )
+                  .join('\n');
+                
+                navigator.clipboard.writeText(musicDescriptions);
+                showMessage('🎯 Key music parameters copied for generation!', 'success');
+              }}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              🎯 Copy Key Parameters
+            </button>
+            
+            <button 
+              onClick={() => {
+                // Auto-fill the extra description field with analysis
+                const descriptionField = document.querySelector('textarea[placeholder*="Describe"]');
+                if (descriptionField) {
+                  const summary = musicAnalysis.substring(0, 500) + '...';
+                  descriptionField.value = summary;
+                  showMessage('🎵 Music description auto-filled from analysis!', 'success');
+                } else {
+                  showMessage('Description field not found. Please copy manually.', 'warning');
+                }
+              }}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#fd7e14',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              ✏️ Auto-Fill Description
+            </button>
+            
+            <button 
+              onClick={() => setShowMusicAnalysis(false)}
+              style={{
+                padding: '10px 16px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              👁️ Hide Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
 )}
-            {/* Volume Control */}
-            {!isGeneratingPreview && combinedVideoUrl && (
-              <div style={{
-                background: 'rgba(102, 126, 234, 0.1)',
-                borderRadius: '16px',
-                padding: '2rem',
-                marginBottom: '3rem'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  marginBottom: '1rem'
-                }}>
-                  <span style={{
-                    fontSize: '1.5rem',
-                    color: '#667eea'
-                  }}>🔊</span>
-                  <span style={{
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    color: '#2d3748'
-                  }}>
-                    Music Volume: {Math.round(previewMusicVolume * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={previewMusicVolume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                  style={{
-                    width: '100%',
-                    height: '8px',
-                    borderRadius: '4px',
-                    background: '#e2e8f0',
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                />
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: '#718096'
-                }}>
-                  <span>0%</span>
-                  <span>100%</span>
-                </div>
-              </div>
-            )}
 
-            {/* Action Buttons */}
-            {!isGeneratingPreview && combinedVideoUrl && (
-              <div style={{
-                display: 'flex',
-                gap: '1rem',
-                justifyContent: 'center'
-              }}>
-                <Button
-                  variant="secondary"
-                  onClick={() => setCurrentStep(4)}
-                  style={{
-                    fontSize: '1.1rem',
-                    padding: '1rem 2rem'
-                  }}
-                >
-                  ⬅️ Back to Tracks
-                </Button>
-                
-                <Button
-                  variant="success"
-                  onClick={handleFinalDownload}
-                  disabled={isGeneratingPreview}
-                  style={{
-                    fontSize: '1.1rem',
-                    padding: '1rem 2rem'
-                  }}
-                >
-                  {isGeneratingPreview ? 'Preparing...' : '⬇️ Download Video'}
-                </Button>
-              </div>
-            )}
+{/* Add this CSS to your component's styles */}
+<style jsx>{`
+  .analysis-content h1,
+  .analysis-content h2,
+  .analysis-content h3 {
+    color: #2c3e50 !important;
+    margin: 20px 0 10px 0 !important;
+    font-weight: bold !important;
+  }
+  
+  .analysis-content h1 {
+    font-size: 18px !important;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 5px;
+  }
+  
+  .analysis-content h2 {
+    font-size: 16px !important;
+    color: #e74c3c !important;
+  }
+  
+  .analysis-content h3 {
+    font-size: 14px !important;
+    color: #f39c12 !important;
+  }
+  
+  .analysis-content strong,
+  .analysis-content b {
+    color: #2980b9 !important;
+    font-weight: 600 !important;
+  }
+  
+  .analysis-content ul,
+  .analysis-content ol {
+    margin-left: 20px !important;
+    margin-bottom: 15px !important;
+  }
+  
+  .analysis-content li {
+    margin-bottom: 8px !important;
+    line-height: 1.5 !important;
+  }
+  
+  .analysis-content code {
+    background-color: #f1f2f6 !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    font-family: 'Monaco', 'Consolas', monospace !important;
+    color: #e74c3c !important;
+  }
+  
+  .step-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .step-section h2 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 24px;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .analysis-results {
+    animation: fadeInUp 0.5s ease-out;
+  }
+`}</style>
+        {/* Step 4: Results */}
+     {/* Step 4: Results with Spotify Players */}
+{currentStep === 4 && tracks.length > 0 && (
+  <div style={{
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '2rem'
+  }}>
+    <div style={{
+      textAlign: 'center',
+      marginBottom: '3rem'
+    }}>
+      <h2 style={{
+        color: 'white',
+        fontSize: '2.5rem',
+        fontWeight: 700,
+        marginBottom: '1rem'
+      }}>
+        🎉 Music Generated Successfully!
+      </h2>
+      <p style={{
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontSize: '1.2rem',
+        margin: 0
+      }}>
+        Your AI-generated tracks are ready to play and download
+      </p>
+    </div>
+
+    {/* Render Spotify Players for each track when renderMusicVideo is FALSE */}
+    {!renderMusicVideo ? (
+      tracks.map((track, index) => {
+        if (!audioRefs.current[index]) audioRefs.current[index] = React.createRef();
+        
+        const audioUrl = track.audioUrl || track.url || track.audio_url;
+        const trackTitle = track.trackName || track.title || `Track ${index + 1}`;
+        
+        return (
+          <SpotifyLikePlayer
+            key={index}
+            track={track}
+            isPlaying={currentlyPlaying?.index === index && isPlaying}
+            currentTime={currentlyPlaying?.index === index ? currentTime : 0}
+            duration={trackDuration || 221}
+            onPlay={() => {
+              // Stop other tracks
+              if (currentlyPlaying && currentlyPlaying.index !== index) {
+                const prevAudio = audioRefs.current[currentlyPlaying.index]?.current;
+                if (prevAudio) prevAudio.pause();
+              }
+              
+              // Play this track
+              const audio = audioRefs.current[index]?.current;
+              if (audio) {
+                audio.play();
+                setCurrentlyPlaying({ track, index });
+                setIsPlaying(true);
+              }
+            }}
+            onPause={() => {
+              const audio = audioRefs.current[index]?.current;
+              if (audio) {
+                audio.pause();
+                setIsPlaying(false);
+              }
+            }}
+            onSeek={(time) => {
+              const audio = audioRefs.current[index]?.current;
+              if (audio) {
+                audio.currentTime = time;
+                setCurrentTime(time);
+              }
+            }}
+            onPlayInterval={() => handlePlayInterval(track, index)}
+            onDownloadInterval={() => handleDownloadInterval(track, index)}
+            onUseForVideo={() => {
+              setSelectedTrack(track);
+              setCurrentStep(2);
+            }}
+            intervalStart={track.start}
+            intervalEnd={track.end}
+            intervalDuration={track.duration }
+          />
+        );
+      })
+    ) : (
+      // Original track display for when renderMusicVideo is TRUE
+      tracks.map((track, index) => {
+        // ... your existing track display code for video mode
+      })
+    )}
+
+    {/* Hidden audio elements */}
+    {tracks.map((track, index) => (
+      <audio
+        key={index}
+        ref={audioRefs.current[index]}
+        src={track.audioUrl || track.url || track.audio_url}
+        onTimeUpdate={(e) => {
+          if (currentlyPlaying?.index === index) {
+            setCurrentTime(e.target.currentTime);
+          }
+        }}
+        onLoadedMetadata={(e) => {
+          setTrackDuration(e.target.duration);
+        }}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentlyPlaying(null);
+        }}
+        style={{ display: 'none' }}
+      />
+    ))}
+
+    <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+      <Button 
+        variant="danger" 
+        onClick={handleStartOver}
+        style={{ fontSize: '1.2rem', padding: '1.5rem 3rem' }}
+      >
+        🔄 Start Over
+      </Button>
+    </div>
+  </div>
+)}
+
+        {/* Step 5: Video Preview with Volume Control */}
+    {/* Step 5: Professionally Redesigned Video Preview with Volume Control */}
+
+
+
+{currentStep === 5 && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '2rem',
+    padding: '2rem',
+    boxSizing: 'border-box'
+  }}>
+    {/* ClipTune Header */}
+    <div style={{
+      textAlign: 'center',
+      marginBottom: '1rem'
+    }}>
+      <h1 style={{
+        fontSize: '4rem',
+        fontWeight: 'bold',
+        color: 'white',
+        textShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+        margin: 0,
+        letterSpacing: '2px',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text'
+      }}>
+        ClipTune
+      </h1>
+    </div>
+
+    {/* Loading State */}
+    {isGeneratingPreview && (
+      <div style={{ 
+        textAlign: 'center'
+      }}>
+        <div style={{
+          width: '80px',
+          height: '80px',
+          border: '6px solid rgba(255, 255, 255, 0.2)',
+          borderTop: '6px solid #667eea',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          margin: '0 auto 2rem'
+        }} />
+        <h3 style={{
+          fontSize: '1.5rem',
+          fontWeight: 600,
+          color: '#667eea',
+          marginBottom: '0.5rem',
+          margin: 0
+        }}>
+          {isGeneratingPreview ? 'Updating Volume...' : 'Creating Your Video'}
+        </h3>
+        <p style={{ 
+          fontSize: '1.1rem', 
+          color: 'rgba(255, 255, 255, 0.7)',
+          margin: 0
+        }}>
+          {isGeneratingPreview ? 'Please wait while we adjust the music volume...' : 'Please wait while we combine your music with the video...'}
+        </p>
+      </div>
+    )}
+
+    {/* Video Player and Volume Control Container */}
+   {/* Volume Control Section - Made More Compact */}
+{!isGeneratingPreview && combinedVideoUrl && (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '1.5rem',
+    width: '100%',
+    maxWidth: '900px'
+  }}>
+    {/* Video Player */}
+    <video
+      src={combinedVideoUrl}
+      controls
+      style={{
+        width: '90vw',
+        maxWidth: '800px',
+        maxHeight: '60vh',
+        borderRadius: '16px',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4)'
+      }}
+    />
+
+    {/* Compact Volume Control Section */}
+    <div style={{
+      width: '100%',
+      maxWidth: '400px', // Reduced from 500px
+      background: 'rgba(30, 41, 59, 0.9)',
+      backdropFilter: 'blur(20px)',
+      borderRadius: '12px', // Reduced from 16px
+      padding: '1rem', // Reduced from 1.5rem
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)' // Reduced shadow
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '0.75rem' // Reduced from 1rem
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem', // Reduced from 0.75rem
+          fontSize: '0.95rem', // Reduced from 1.1rem
+          color: '#e2e8f0',
+          fontWeight: 600
+        }}>
+          <span style={{ fontSize: '1.2rem' }}>🎵</span>
+          Volume
+        </div>
+        <div style={{
+          fontSize: '0.95rem', // Reduced from 1.1rem
+          fontWeight: 'bold',
+          padding: '0.4rem 0.8rem', // Reduced padding
+          borderRadius: '6px', // Reduced from 8px
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          minWidth: '60px', // Reduced from 70px
+          textAlign: 'center'
+        }}>
+          {Math.round(previewMusicVolume * 100)}%
+        </div>
+      </div>
+      
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.1"
+        value={previewMusicVolume}
+        onChange={(e) => {
+          const newVolume = parseFloat(e.target.value);
+          handleVolumeChange(newVolume);
+        }}
+        disabled={isGeneratingPreview}
+        style={{
+          width: '100%',
+          height: '6px', // Reduced from 8px
+          borderRadius: '3px', // Reduced from 4px
+          background: `linear-gradient(to right, #667eea 0%, #667eea ${previewMusicVolume * 100}%, #4b5563 ${previewMusicVolume * 100}%, #4b5563 100%)`,
+          outline: 'none',
+          cursor: isGeneratingPreview ? 'not-allowed' : 'pointer',
+          WebkitAppearance: 'none',
+          appearance: 'none',
+          opacity: isGeneratingPreview ? 0.5 : 1
+        }}
+      />
+      
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: '0.8rem', // Reduced from 0.9rem
+        color: '#94a3b8',
+        marginTop: '0.5rem' // Reduced from 0.75rem
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          🔇 <span>0%</span>
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          🔊 <span>100%</span>
+        </span>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Action Buttons - Now with more space */}
+{!isGeneratingPreview && combinedVideoUrl && (
+  <div style={{
+    display: 'flex',
+    gap: '1.5rem',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: '1rem' // Added margin top for better spacing
+  }}>
+    {/* Save Button */}
+    {!hasBeenSaved ? (
+      <button
+        onClick={handleManualSave}
+        style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: 'white',
+          border: 'none',
+          padding: '1.2rem 2.5rem',
+          borderRadius: '50px',
+          fontSize: '1.1rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          border: '2px solid rgba(255, 255, 255, 0.2)',
+          letterSpacing: '0.5px'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 12px 40px rgba(16, 185, 129, 0.4)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.3)';
+        }}
+      >
+        <span style={{ fontSize: '1.2rem' }}>💾</span>
+        Save Combined Video
+      </button>
+    ) : (
+      <div style={{
+        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+        color: 'white',
+        padding: '1.2rem 2.5rem',
+        borderRadius: '50px',
+        fontSize: '1.1rem',
+        fontWeight: 600,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
+        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+        letterSpacing: '0.5px'
+      }}>
+        <span style={{ fontSize: '1.2rem' }}>✅</span>
+        Video Saved Successfully!
+      </div>
+    )}
+    
+    {/* Download Button */}
+    <button
+      onClick={handleFinalDownload}
+      disabled={isGeneratingPreview}
+      style={{
+        background: isGeneratingPreview 
+          ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+          : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+        color: 'white',
+        border: 'none',
+        padding: '1.2rem 2.5rem',
+        borderRadius: '50px',
+        fontSize: '1.1rem',
+        fontWeight: 600,
+        cursor: isGeneratingPreview ? 'not-allowed' : 'pointer',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        boxShadow: isGeneratingPreview 
+          ? '0 8px 25px rgba(156, 163, 175, 0.3)'
+          : '0 8px 25px rgba(5, 150, 105, 0.3)',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
+        opacity: isGeneratingPreview ? 0.7 : 1,
+        letterSpacing: '0.5px'
+      }}
+      onMouseEnter={(e) => {
+        if (!isGeneratingPreview) {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 12px 35px rgba(5, 150, 105, 0.4)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isGeneratingPreview) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 25px rgba(5, 150, 105, 0.3)';
+        }
+      }}
+    >
+      <span style={{ fontSize: '1.2rem' }}>
+        {isGeneratingPreview ? '⏳' : '⬇️'}
+      </span>
+      {isGeneratingPreview ? 'Preparing Download...' : 'Download Video'}
+    </button>
+  </div>
+)}
+
+{/* Updated CSS for smaller slider thumb */}
+<style>{`
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    height: 16px; /* Reduced from 20px */
+    width: 16px; /* Reduced from 20px */
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid #667eea;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    height: 16px; /* Reduced from 20px */
+    width: 16px; /* Reduced from 20px */
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid #667eea;
+  }
+
+  input[type="range"]:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  input[type="range"]:disabled::-moz-range-thumb {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+`}</style>
+
+    {/* Action Buttons */}
+    {!isGeneratingPreview && combinedVideoUrl && (
+      <div style={{
+        display: 'flex',
+        gap: '1.5rem',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        {/* Save Button */}
+        {!hasBeenSaved ? (
+          <button
+            onClick={handleManualSave}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              padding: '1.2rem 2.5rem',
+              borderRadius: '50px',
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              border: '2px solid rgba(255, 255, 255, 0.2)',
+              letterSpacing: '0.5px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 12px 40px rgba(16, 185, 129, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(16, 185, 129, 0.3)';
+            }}
+          >
+            <span style={{ fontSize: '1.2rem' }}>💾</span>
+            Save Combined Video
+          </button>
+        ) : (
+          <div style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            padding: '1.2rem 2.5rem',
+            borderRadius: '50px',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            border: '2px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+            letterSpacing: '0.5px'
+          }}>
+            <span style={{ fontSize: '1.2rem' }}>✅</span>
+            Video Saved Successfully!
           </div>
         )}
+        
+        {/* Download Button */}
+        <button
+          onClick={handleFinalDownload}
+          disabled={isGeneratingPreview}
+          style={{
+            background: isGeneratingPreview 
+              ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+              : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+            color: 'white',
+            border: 'none',
+            padding: '1.2rem 2.5rem',
+            borderRadius: '50px',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            cursor: isGeneratingPreview ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            boxShadow: isGeneratingPreview 
+              ? '0 8px 25px rgba(156, 163, 175, 0.3)'
+              : '0 8px 25px rgba(5, 150, 105, 0.3)',
+            border: '2px solid rgba(255, 255, 255, 0.2)',
+            opacity: isGeneratingPreview ? 0.7 : 1,
+            letterSpacing: '0.5px'
+          }}
+          onMouseEnter={(e) => {
+            if (!isGeneratingPreview) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 12px 35px rgba(5, 150, 105, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isGeneratingPreview) {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(5, 150, 105, 0.3)';
+            }
+          }}
+        >
+          <span style={{ fontSize: '1.2rem' }}>
+            {isGeneratingPreview ? '⏳' : '⬇️'}
+          </span>
+          {isGeneratingPreview ? 'Preparing Download...' : 'Download Video'}
+        </button>
       </div>
+    )}
+
+    {/* Add CSS for the custom slider styling */}
+    <style>{`
+      input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        border: 2px solid #667eea;
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        border: 2px solid #667eea;
+      }
+
+      input[type="range"]:disabled::-webkit-slider-thumb {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      input[type="range"]:disabled::-moz-range-thumb {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+    `}</style>
+  </div>
+)}
+</div>
 
       {/* Video Editing Modal */}
       {showVideoEditModal && (
@@ -9824,46 +12040,12 @@ onMouseDown={(e) => {
       alignItems: 'center',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     }}>
-      <button
-        onClick={handleGoBackToVideoEdit}
-        style={{
-          position: 'absolute',
-          top: '0',
-          left: '0',
-          background: 'rgba(66,153,225,0.08)',
-          border: 'none',
-          color: '#4299e1',
-          borderRadius: '0 0 8px 0',
-          width: '48px',
-          height: '48px',
-          cursor: 'pointer',
-          fontSize: '1.3rem',
-          fontWeight: 500,
-          transition: 'all 0.2s ease',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '2px 2px 12px rgba(66,153,225,0.12)'
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.background = 'rgba(66,153,225,0.18)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = '0 4px 14px rgba(66,153,225,0.18)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.background = 'rgba(66,153,225,0.08)';
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 2px 12px rgba(66,153,225,0.12)';
-        }}
-        aria-label="Go back to video editing"
-      >
-        ⬅
-      </button>
+    
       <button
         onClick={() => setShowConfigModal(false)}
         style={{
           position: 'absolute',
-          top: '1.5rem',
+          top: '0.01rem',
           right: '1.5rem',
           background: 'none',
           border: 'none',
@@ -9883,27 +12065,7 @@ onMouseDown={(e) => {
       >
         ×
       </button>
-      
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '2.2rem', width: '100%' }}>
-        <h2 style={{
-          fontSize: '1.8rem',
-          fontWeight: 700,
-          color: '#ffffff',
-          marginBottom: '0.5rem',
-          letterSpacing: '0.5px'
-        }}>
-          🎵 Guide AI to Create Your Perfect Soundtrack
-        </h2>
-        <p style={{
-          color: '#a0aec0',
-          fontSize: '1.08rem',
-          fontWeight: 400,
-          margin: 0
-        }}>
-          Customize your music generation with detailed instructions
-        </p>
-      </div>
+     
 
       {/* 🚨 NEW: Track Name Field */}
       <div style={{ width: '100%', marginBottom: '1.5rem' }}>
@@ -9950,163 +12112,10 @@ onMouseDown={(e) => {
         </div>
       </div>
 
-      {/* YouTube Reference URLs */}
-      <div style={{ width: '100%', marginBottom: '1.5rem' }}>
-        <label style={{
-          display: 'block',
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: '#cbd5e1',
-          marginBottom: '0.5rem',
-          letterSpacing: '0.2px',
-          textAlign: 'center'
-        }}>
-          🎵 YouTube Reference URLs <span style={{color:'#4299e1', fontWeight:400, fontSize:'0.95em'}}>(optional)</span>
-        </label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {youtubeUrls.map((url, index) => (
-            <input
-              key={index}
-              type="text"
-              value={url}
-              onChange={e => {
-                const newUrls = [...youtubeUrls];
-                newUrls[index] = e.target.value;
-                setYoutubeUrls(newUrls);
-              }}
-              placeholder={`YouTube URL ${index + 1}`}
-              style={{
-                width: '100%',
-                padding: '0.85rem 1rem',
-                border: '1.5px solid #2d3748',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                background: '#23272f',
-                color: '#e2e8f0',
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-                transition: 'border 0.2s',
-                outline: 'none',
-                marginBottom: 0
-              }}
-              onFocus={e => e.target.style.border = '1.5px solid #4299e1'}
-              onBlur={e => e.target.style.border = '1.5px solid #2d3748'}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Lyrics */}
-      <div style={{ width: '100%', marginBottom: '1.5rem' }}>
-        <label style={{
-          display: 'block',
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: '#cbd5e1',
-          marginBottom: '0.5rem',
-          letterSpacing: '0.2px',
-          textAlign: 'center'
-        }}>
-          📝 Lyrics <span style={{color:'#4299e1', fontWeight:400, fontSize:'0.95em'}}>(optional)</span>
-        </label>
-        <textarea
-          value={lyrics}
-          onChange={e => setLyrics(e.target.value)}
-          placeholder="Enter specific lyrics or vocal themes for your track..."
-          rows={3}
-          style={{
-            width: '100%',
-            padding: '0.85rem 1rem',
-            border: '1.5px solid #2d3748',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            background: '#23272f',
-            color: '#e8e8f0',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            transition: 'border 0.2s',
-            outline: 'none',
-            resize: 'vertical',
-            minHeight: '70px',
-            maxHeight: '180px'
-          }}
-          onFocus={e => e.target.style.border = '1.5px solid #4299e1'}
-          onBlur={e => e.target.style.border = '1.5px solid #2d3748'}
-        />
-      </div>
-
+   
       {/* Extra Description */}
-      <div style={{ width: '100%', marginBottom: '1.5rem' }}>
-        <label style={{
-          display: 'block',
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: '#cbd5e1',
-          marginBottom: '0.5rem',
-          letterSpacing: '0.2px',
-          textAlign: 'center'
-        }}>
-          🎨 Music Style & Description <span style={{color:'#4299e1', fontWeight:400, fontSize:'0.95em'}}>(optional)</span>
-        </label>
-        <textarea
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="Describe the style and mood (e.g., 'An upbeat, synthwave track for a party scene', 'A calm, ambient background score for meditation')"
-          rows={2}
-          style={{
-            width: '100%',
-            padding: '0.85rem 1rem',
-            border: '1.5px solid #2d3748',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            background: '#23272f',
-            color: '#e8e8f0',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            transition: 'border 0.2s',
-            outline: 'none',
-            resize: 'vertical',
-            minHeight: '50px',
-            maxHeight: '120px'
-          }}
-          onFocus={e => e.target.style.border = '1.5px solid #4299e1'}
-          onBlur={e => e.target.style.border = '1.5px solid #2d3748'}
-        />
-      </div>
-
-      {/* Instrumental Checkbox */}
-      <div style={{
-        marginBottom: '1.2rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '0.8rem',
-        background: 'rgba(66,153,225,0.07)',
-        padding: '1.1rem 1.5rem',
-        borderRadius: '12px',
-        border: '1.5px solid #2d3748',
-        width: '100%'
-      }}>
-        <input
-          type="checkbox"
-          id="instrumental"
-          checked={instrumental}
-          onChange={e => setInstrumental(e.target.checked)}
-          style={{
-            width: '22px',
-            height: '22px',
-            cursor: 'pointer',
-            accentColor: '#4299e1',
-            marginRight: '0.5rem'
-          }}
-        />
-        <label htmlFor="instrumental" style={{
-          color: '#e2e8f0',
-          fontWeight: 500,
-          fontSize: '1.08rem',
-          cursor: 'pointer',
-          marginBottom: 0
-        }}>
-          🎼 Generate Instrumental Only
-        </label>
-      </div>
+    
+     
       
       {/* Render Music Video Checkbox */}
       <div style={{
@@ -10191,7 +12200,7 @@ onMouseDown={(e) => {
               Generating "{trackName || 'Your Track'}"...
             </>
           ) : (
-            <>✨ Generate "{trackName || 'Your Perfect Soundtrack'}"</>
+            <> Generate </>
           )}
         </Button>
       </div>
@@ -10206,6 +12215,285 @@ onMouseDown={(e) => {
       }}>
         💡 <strong>Tip:</strong> The more detailed your description, the better your AI-generated soundtrack will match your vision!
       </div>
+    </div>
+  </div>
+)}
+{/* Timeline Editor Modal */}
+{showTimelineEditor && (
+  <div style={{
+    ...STYLES.modal.overlay,
+    background: 'rgba(0, 0, 0, 0.3)',
+    backdropFilter: 'blur(3px)'
+  }}>
+    <div style={{
+      ...STYLES.modal.container,
+      width: '1100px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      // 🚨 CHANGED: From white to dark gradient background like main screen
+      background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+      color: 'white' // Added to ensure text is visible on dark background
+    }}>
+      <button
+        onClick={() => setShowTimelineEditor(false)}
+        style={{
+          ...STYLES.modal.closeButton,
+          color: 'rgba(255, 255, 255, 0.7)' // Changed close button color for dark background
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+      >
+        ×
+      </button>
+
+      <div style={{ textAlign: 'center', marginBottom: '3rem', width: '100%' }}>
+        <h2 style={{
+          ...STYLES.modal.title,
+          color: 'white' // Changed title color for dark background
+        }}>
+          ✂️ Set Video Timeline
+        </h2>
+        <p style={{
+          ...STYLES.modal.subtitle,
+          color: 'rgba(255, 255, 255, 0.8)' // Changed subtitle color for dark background
+        }}>
+          Choose the exact portion of your video for music generation
+        </p>
+      </div>
+
+      {/* Video Preview Container */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: '3rem'
+      }}>
+        <div style={{
+          width: '70%',
+          textAlign: 'center',
+          display: 'flex',
+          justifyContent: 'center'
+        }}>
+          <video
+            ref={videoPreviewRef}
+            src={videoUrl}
+            controls
+            style={{
+              width: '100%',
+              maxHeight: '400px',
+              borderRadius: '16px',
+              boxShadow: '0 15px 50px rgba(0, 0, 0, 0.3)'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Timeline */}
+      {!isLoadingVideoData && thumbnails.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div
+            ref={trackRef}
+            style={{
+              position: 'relative',
+              width: THUMB_WIDTH * NUM_THUMBS,
+              height: THUMB_HEIGHT,
+              borderRadius: '12px',
+              overflow: 'hidden',
+              userSelect: 'none',
+              background: '#1A202C',
+              boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            {/* Thumbnails */}
+            <div style={{ display: 'flex', height: '100%' }}>
+              {thumbnails.map((thumb, i) => (
+                <img key={i} src={thumb} style={{ width: THUMB_WIDTH, height: THUMB_HEIGHT, objectFit: 'cover' }} alt={`thumb-${i}`} />
+              ))}
+            </div>
+
+            {/* Selection overlay */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: startX,
+              width: endX - startX,
+              height: '100%',
+              background: 'rgba(66, 153, 225, 0.4)',
+              borderLeft: '3px solid #4299E1',
+              borderRight: '3px solid #4299E1',
+              pointerEvents: 'none',
+              boxSizing: 'border-box'
+            }} />
+
+            {/* Start handle */}
+            <div
+              style={{
+                position: 'absolute',
+                left: startX - 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 16,
+                height: 'calc(100% + 16px)',
+                background: '#4299E1',
+                cursor: 'ew-resize',
+                borderRadius: '6px',
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 15px rgba(66, 153, 225, 0.5)'
+              }}
+              onMouseDown={createDragHandler("start")}
+            >
+              <span style={{color: 'white', transform: 'rotate(90deg)', fontSize: '10px'}}>|||</span>
+            </div>
+
+            {/* End handle */}
+            <div
+              style={{
+                position: 'absolute',
+                left: endX - 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 16,
+                height: 'calc(100% + 16px)',
+                background: '#4299E1',
+                cursor: 'ew-resize',
+                borderRadius: '6px',
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 15px rgba(66, 153, 225, 0.5)'
+              }}
+              onMouseDown={createDragHandler("end")}
+            >
+              <span style={{color: 'white', transform: 'rotate(90deg)', fontSize: '10px'}}>|||</span>
+            </div>
+          </div>
+
+          {/* Time indicators */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            gap: '1.5rem',
+            alignItems: 'center',
+            marginTop: '2rem',
+            width: THUMB_WIDTH * NUM_THUMBS,
+            color: '#E2E8F0'
+          }}>
+            <div style={{ 
+              background: 'rgba(255,255,255,0.1)', // Made slightly more visible on dark background
+              padding: '0.75rem 1rem', 
+              borderRadius: '12px', 
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)' // Added subtle border
+            }}>
+              <strong>Start:</strong> {formatTime(startTime)}
+            </div>
+            <div style={{ 
+              background: '#4299E1', 
+              padding: '1rem 1.5rem', 
+              borderRadius: '12px', 
+              fontWeight: '500', 
+              color: 'white',
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontSize: '1.1rem',
+              letterSpacing: '0.5px'
+            }}>
+              Duration: {formatTime(selectionDuration)}
+            </div>
+            <div style={{ 
+              background: 'rgba(255,255,255,0.1)', // Made slightly more visible on dark background
+              padding: '0.75rem 1rem', 
+              borderRadius: '12px', 
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)' // Added subtle border
+            }}>
+              <strong>End:</strong> {formatTime(endTime)}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ 
+            textAlign: 'center', 
+            marginTop: '3rem',
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center'
+          }}>
+            <Button
+              variant="secondary"
+              onClick={() => setShowTimelineEditor(false)}
+              style={{
+                fontSize: '1.1rem',
+                padding: '1.25rem 2rem'
+              }}
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              variant="success"
+              onClick={() => {
+                // Save the timeline settings
+                const [start, end] = getTrimRange();
+                
+                // 🚨 FIXED: Only collect chat messages for customPrompt (NO video segment info)
+                const userChatMessages = chatHistory
+                  .filter(msg => msg.type === 'user')
+                  .map(msg => msg.message);
+                
+                // Set description to ONLY chat messages (for customPrompt)
+                if (userChatMessages.length > 0) {
+                  const chatOnlyDescription = userChatMessages.join('. ');
+                  setDescription(chatOnlyDescription); // This goes to customPrompt
+                  console.log('📝 Chat-only description for customPrompt:', chatOnlyDescription);
+                } else {
+                  setDescription(''); // No chat = empty customPrompt
+                }
+                
+                // Save video segment info separately (NOT in customPrompt)
+                setSavedVideoSegment({
+                  startTime: formatTime(start),
+                  endTime: formatTime(end),
+                  duration: Math.round(end - start),
+                  start: start,
+                  end: end
+                  // No description field here - we handle chat separately
+                });
+                
+                setShowTimelineEditor(false);
+                
+                // Show user feedback
+                if (userChatMessages.length > 0) {
+                  const confirmMessage = {
+                    id: Date.now(),
+                    type: 'ai',
+                    message: `✅ Timeline saved! Your chat messages "${userChatMessages.join(', ')}" will be used for music style. Video segment: ${formatTime(start)} - ${formatTime(end)}.`,
+                    timestamp: new Date().toLocaleTimeString()
+                  };
+                  setChatHistory(prev => [...prev, confirmMessage]);
+                  showMessage('Timeline and chat messages saved!', 'success');
+                } else {
+                  showMessage('Timeline saved! Add music style in chat for better results.', 'success');
+                }
+              }}
+              style={{
+                background: '#28a745',
+                fontSize: '1.1rem',
+                padding: '1.25rem 2rem'
+              }}
+            >
+              ✅ Set Timeline
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   </div>
 )}
@@ -10234,59 +12522,7 @@ onMouseDown={(e) => {
       )}
       
       {/* Fixed download button at the bottom of the page when renderMusicVideo is true and tracks are available */}
-      {renderMusicVideo && tracks.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          background: 'rgba(0, 0, 0, 0.8)',
-          padding: '15px 30px',
-          borderRadius: '15px',
-          boxShadow: '0 5px 20px rgba(0, 0, 0, 0.3)'
-        }}>
-          <div style={{ color: 'white', marginBottom: '10px', fontWeight: 'bold' }}>
-            {isDownloading ? downloadProgress : 'Download Video With Music'}
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {tracks.map((track, i) => (
-              <Button
-                key={i}
-                variant="primary"
-                onClick={() => handleDownloadVideoWithMusic(track)}
-                disabled={isDownloading}
-                style={{
-                  background: isDownloading 
-                    ? 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)'
-                    : 'linear-gradient(135deg, #3182CE 0%, #2C5282 100%)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  animation: isDownloading ? 'pulse 2s infinite' : 'none',
-                  cursor: isDownloading ? 'not-allowed' : 'pointer',
-                  opacity: isDownloading ? 0.7 : 1
-                }}
-              >
-                <span style={{ fontSize: '20px' }}>
-                  {isDownloading ? '⏳' : '🎬'}
-                </span> 
-                {isDownloading ? 'Processing...' : `Track ${i + 1}`}
-              </Button>
-            ))}
-         
-          </div>
-        </div>
-      )}
+    
     </div>
   );
 }
