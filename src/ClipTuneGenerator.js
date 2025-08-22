@@ -8841,7 +8841,7 @@ const handleDownloadVideoWithMusic = async (track) => {
       {/* Enhanced Send Button */}
       <button
         className={`chat-button ${(chatMessage.trim() && isFileReady) ? 'send-button-ready' : 'button-disabled'}`}
-    onClick={() => {
+ onClick={() => {
   if (!chatMessage.trim()) {
     showMessage('Please enter a message first', 'error');
     return;
@@ -8852,12 +8852,28 @@ const handleDownloadVideoWithMusic = async (track) => {
     return;
   }
   
+  const messageText = chatMessage.trim();
+  
   if (isCompleteVideoMode) {
-    // 🚨 FIX: Set both states before processing
-    setVideoInstructions(chatMessage.trim());
-    setDescription(chatMessage.trim());
-    processVideoWithClipTune();
+    // 🚨 CRITICAL FIX: Set both states IMMEDIATELY
+    setVideoInstructions(messageText);
+    setDescription(messageText);
+    
+    // Show immediate feedback like normal mode
+    showMessage(`✅ SET DESCRIPTION IMMEDIATELY: "${messageText}"`, 'success');
+    console.log('🎯 CUSTOM PROMPT UPDATED:', messageText);
+    
+    // Clear input
+    setChatMessage('');
+    
+    // Process video with small delay to ensure state updates
+    setTimeout(() => {
+      processVideoWithClipTune();
+    }, 50);
+    
   } else {
+    setDescription(messageText);
+    showMessage(`✅ SET DESCRIPTION IMMEDIATELY: "${messageText}"`, 'success');
     handleProceedToNext();
   }
 }}
