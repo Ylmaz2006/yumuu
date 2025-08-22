@@ -3500,7 +3500,7 @@ const handleCancelTimelineEdit = () => {
 // ALSO ADD this helper function to provide visual feedback when keyboard movement is blocked:
 
 // REPLACE your existing processVideoWithClipTune function with this updated version
-const processVideoWithClipTune = async () => {
+const processVideoWithClipTune = async (explicitInstructions = null) => {
   if (!selectedFile) {
     showMessage('Please select a video file first.', 'error');
     return;
@@ -3511,17 +3511,36 @@ const processVideoWithClipTune = async () => {
   setCompleteVideoProgress(0);
   setCompleteVideoStatus('Initializing...');
 
-  // Simulate progress updates during processing
+  // 🚨 FIX: Use explicit instructions parameter with proper fallbacks
+  let processingInstructions;
+  
+  if (explicitInstructions) {
+    // Use the explicitly passed instructions (from send button)
+    processingInstructions = explicitInstructions.trim();
+  } else {
+    // Fallback to state values
+    processingInstructions = videoInstructions || description || 'only add music to places where people do not speak';
+  }
+  
+  // Ensure we have instructions
+  if (!processingInstructions || processingInstructions.trim() === '') {
+    processingInstructions = 'only add music to places where people do not speak';
+  }
+  
+  // 🚨 FIX: Update description state for consistency
+  setDescription(processingInstructions);
+  setVideoInstructions(processingInstructions);
+
+  // Add progress simulation...
   const progressInterval = setInterval(() => {
     setCompleteVideoProgress(prev => {
-      if (prev < 85) { // Don't go above 85% until we get real completion
+      if (prev < 85) {
         return prev + Math.random() * 10;
       }
       return prev;
     });
   }, 1000);
 
-  // Update status messages at different intervals
   const statusUpdates = [
     { delay: 2000, status: 'Uploading video...', progress: 15 },
     { delay: 4000, status: 'Analyzing video content...', progress: 30 },
@@ -3539,19 +3558,6 @@ const processVideoWithClipTune = async () => {
       }
     }, delay);
   });
-
-  // 🚨 FIX: Get instructions with proper fallback priority
-  let processingInstructions = videoInstructions || description || 'only add music to places where people do not speak';
-  
-  // 🚨 FIX: Ensure we have instructions
-  if (!processingInstructions || processingInstructions.trim() === '') {
-    processingInstructions = 'only add music to places where people do not speak';
-  }
-  
-  // 🚨 FIX: Update description state if it was empty
-  if (!description || description.trim() === '') {
-    setDescription(processingInstructions);
-  }
 
   try {
     setIsProcessingVideo(true);
@@ -3577,10 +3583,10 @@ const processVideoWithClipTune = async () => {
     setCompleteVideoProgress(20);
     setCompleteVideoStatus('Preparing video data...');
 
-    // Create FormData with the TRIMMED video section
+    // 🚨 FIX: Create FormData with the EXPLICIT processing instructions
     const formData = new FormData();
     formData.append('video', selectedFile);
-    formData.append('extra_prompt', processingInstructions);
+    formData.append('extra_prompt', processingInstructions); // Use the explicit instructions
     formData.append('video_start', trimStart.toString());
     formData.append('video_end', trimEnd.toString());
     formData.append('total_seconds', Math.floor(trimmedDuration));
@@ -3590,8 +3596,8 @@ const processVideoWithClipTune = async () => {
     setCompleteVideoStatus('Sending to ClipTune AI...');
 
     logToTerminal('📤 Uploading and analyzing TRIMMED video section...', 'info');
+    logToTerminal(`📊 Instructions being sent: "${processingInstructions}"`, 'info');
     logToTerminal(`📊 Trimmed duration sent: ${Math.floor(trimmedDuration)} seconds`, 'info');
-    logToTerminal(`📊 Trim range: ${trimStart}s - ${trimEnd}s`, 'info');
 
     // Send to backend
     const response = await fetch('https://nback-6gqw.onrender.com/api/cliptune-upload-trimmed', {
@@ -3645,28 +3651,19 @@ const processVideoWithClipTune = async () => {
     
     logToTerminal(`🎯 Successfully processed ${processedSegments.length} valid music segments`, 'success');
     
-    // Log processed segment details
-    processedSegments.forEach((segment, index) => {
-      logToTerminal(
-        `   Segment ${index + 1}: ${formatTimeFromSeconds(segment.parsed_start)} - ${formatTimeFromSeconds(segment.parsed_end)} ` +
-        `(${formatTimeFromSeconds(segment.duration)}) [TRIMMED VIDEO]`, 
-        'info'
-      );
-      
-      if (segment.music_summary) {
-        logToTerminal(`      🎵 AI Description: ${segment.music_summary.slice(0, 60)}...`, 'info');
-      }
-    });
+    // Log final confirmation of instructions used
+    logToTerminal(`✅ Used processing instructions: "${processingInstructions}"`, 'success');
     
     // Store the PROCESSED segments for display
     setVideoSegments(processedSegments);
     setShowFullVideoAnalysis(true);
     
-    // Store trimmed video information
+    // Store processing result with instructions
     setProcessedVideoResult({
       ...result.result,
       segments: processedSegments,
       original_segments: rawSegments,
+      processing_instructions: processingInstructions, // Store the instructions used
       trim_info: {
         original_start: trimStart,
         original_end: trimEnd,
@@ -3681,6 +3678,7 @@ const processVideoWithClipTune = async () => {
         original_video_duration: duration,
         trim_start: trimStart,
         trim_end: trimEnd,
+        instructions_used: processingInstructions,
         processing_timestamp: new Date().toISOString()
       }
     });
@@ -3692,12 +3690,12 @@ const processVideoWithClipTune = async () => {
     
     logToTerminal('✅ Trimmed video analysis complete! Ready for music generation.', 'success');
     logToTerminal(`📊 Processing Summary:`, 'info');
+    logToTerminal(`   • Instructions: "${processingInstructions}"`, 'info');
     logToTerminal(`   • Analyzed trimmed section: ${formatTimeFromSeconds(trimStart)} - ${formatTimeFromSeconds(trimEnd)}`, 'info');
-    logToTerminal(`   • Trimmed duration: ${formatTimeFromSeconds(trimmedDuration)}`, 'info');
     logToTerminal(`   • Valid segments found: ${processedSegments.length}`, 'info');
     
     showMessage(
-      `Found ${processedSegments.length} segments in trimmed video${processedSegments.length < rawSegments.length ? ` (${rawSegments.length - processedSegments.length} skipped)` : ''}. Redirecting to segments view...`, 
+      `Found ${processedSegments.length} segments using your instructions. Redirecting to segments view...`, 
       'success'
     );
 
@@ -3715,12 +3713,6 @@ const processVideoWithClipTune = async () => {
     // Update progress to show error
     setCompleteVideoProgress(0);
     setCompleteVideoStatus('Error occurred');
-    
-    if (error.message.includes('fetch')) {
-      logToTerminal(`🔧 Suggestion: Check if the ClipTune backend is running`, 'info');
-    } else if (error.message.includes('segments')) {
-      logToTerminal(`🔧 Suggestion: Try different processing instructions or check video content`, 'info');
-    }
     
     showMessage(error.message || 'Failed to process video with ClipTune.', 'error');
   } finally {
@@ -8841,7 +8833,7 @@ const handleDownloadVideoWithMusic = async (track) => {
       {/* Enhanced Send Button */}
       <button
         className={`chat-button ${(chatMessage.trim() && isFileReady) ? 'send-button-ready' : 'button-disabled'}`}
- onClick={() => {
+onClick={() => {
   if (!chatMessage.trim()) {
     showMessage('Please enter a message first', 'error');
     return;
@@ -8855,25 +8847,30 @@ const handleDownloadVideoWithMusic = async (track) => {
   const messageText = chatMessage.trim();
   
   if (isCompleteVideoMode) {
-    // 🚨 CRITICAL FIX: Set both states IMMEDIATELY
+    // 🚨 CRITICAL FIX: Set BOTH states IMMEDIATELY and SYNCHRONOUSLY
     setVideoInstructions(messageText);
     setDescription(messageText);
     
-    // Show immediate feedback like normal mode
-    showMessage(`✅ SET DESCRIPTION IMMEDIATELY: "${messageText}"`, 'success');
-    console.log('🎯 CUSTOM PROMPT UPDATED:', messageText);
-    
-    // Clear input
+    // Clear input immediately for instant feedback
     setChatMessage('');
     
-    // Process video with small delay to ensure state updates
-    setTimeout(() => {
-      processVideoWithClipTune();
-    }, 50);
+    // Show confirmation that instructions were captured
+    const confirmMessage = {
+      id: Date.now(),
+      type: 'ai',
+      message: `🎯 Processing instructions set: "${messageText}". Starting complete video analysis...`,
+      timestamp: new Date().toLocaleTimeString()
+    };
+    setChatHistory(prev => [...prev, confirmMessage]);
+    
+    // 🚨 NEW: Call processVideoWithClipTune with explicit parameters
+    // This ensures the function has the correct values regardless of state timing
+    processVideoWithClipTuneFixed(messageText);
     
   } else {
+    // Normal mode - existing logic
     setDescription(messageText);
-    showMessage(`✅ SET DESCRIPTION IMMEDIATELY: "${messageText}"`, 'success');
+    showMessage(`✅ Description set: "${messageText}"`, 'success');
     handleProceedToNext();
   }
 }}
