@@ -1,264 +1,409 @@
-/* Reset defaults */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Base styles for the entire login page container */
+.login-page-container {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #ece9e6 0%, #ffffff 100%); /* Subtle gradient background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px; /* Padding around the card */
+  box-sizing: border-box; /* Include padding in element's total width and height */
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; /* Professional font stack */
+  color: #333;
 }
 
-body, input, button {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    
-}
-
+/* Authentication Card Styling */
 .auth-card {
   background-color: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); /* Softer, deeper shadow */
+  padding: 40px;
+  max-width: 450px; /* Slightly wider for a more substantial feel */
   width: 100%;
-  max-width: 420px;
-  padding: 30px 24px;
-  animation: fadeIn 0.4s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.auth-header {
   text-align: center;
-  margin-bottom: 24px;
+  border: 1px solid #e0e0e0; /* Subtle border for definition */
+  position: relative; /* For spinner positioning if needed */
+}
+
+/* Header Section */
+.auth-header {
+  margin-bottom: 30px;
 }
 
 .logo-placeholder {
-  height: 50px;
-  width: 50px;
-  background-color: #f0f0f0;
+  width: 60px; /* Adjust size as needed for your logo */
+  height: 60px;
+  background-color: #007bff; /* Placeholder color, replace with your logo */
   border-radius: 50%;
-  margin: 0 auto 10px auto;
+  margin: 0 auto 15px auto;
+  /* You would replace this div with an <img> tag for your actual logo */
+  /* For example: <img src="/path/to/your/logo.svg" alt="SoundAI Logo" className="logo-img" /> */
 }
 
 .auth-title {
-  font-size: 26px;
-  color: #222222;
-  font-weight: 600;
+  font-size: 2.2em; /* Larger, more inviting title */
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 600; /* Semi-bold for prominence */
 }
 
 .auth-subtitle {
-  font-size: 14px;
-  color: #777777;
-  margin-top: 5px;
+  font-size: 1.05em;
+  color: #777;
+  line-height: 1.5;
 }
 
+/* Form Styling */
 .auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+  margin-top: 30px;
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
+  margin-bottom: 20px; /* Increased spacing */
+  text-align: left;
 }
 
 .form-label {
-  font-size: 14px;
-  color: #444444;
-  margin-bottom: 6px;
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500; /* Medium weight for readability */
+  color: #555;
+  font-size: 0.95em;
 }
 
 .form-input {
-  padding: 12px 14px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 15px;
-  transition: border-color 0.3s;
+  width: 100%;
+  padding: 12px 15px; /* More generous padding */
+  border: 1px solid #d0d0d0; /* Lighter border */
+  border-radius: 8px; /* Softer corners */
+  font-size: 1.05em; /* Slightly larger input text */
+  box-sizing: border-box; /* Ensures padding doesn't add to element width */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
 }
 
 .form-input:focus {
-  border-color: #000000;
-  outline: none;
+  border-color: #007bff; /* Focus color */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); /* Subtle glow on focus */
+  outline: none; /* Remove default outline */
+}
+
+.form-input:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
 }
 
 .forgot-password-link {
   text-align: right;
-  margin-top: 6px;
+  margin-top: 8px;
+  font-size: 0.9em;
 }
 
 .forgot-password-link a {
-  font-size: 13px;
-  color: #000000;
+  color: #007bff;
   text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
 }
 
+.forgot-password-link a:hover {
+  text-decoration: underline;
+  color: #0056b3;
+}
+
+/* Buttons */
 .primary-btn {
-  background-color: #000000;
+  width: 100%;
+  padding: 14px 20px; /* More prominent button */
+  background-color: #007bff; /* Primary brand color */
   color: white;
-  padding: 12px;
-  font-size: 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.3s ease;
+  font-size: 1.1em;
+  font-weight: 600; /* Semi-bold button text */
+  margin-top: 25px; /* More spacing from inputs */
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  letter-spacing: 0.5px; /* A touch of spacing for elegance */
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
+  gap: 10px; /* Space between text and spinner */
 }
 
 .primary-btn:hover {
-  background-color: #333333;
+  background-color: #0056b3; /* Darker on hover */
+  transform: translateY(-2px); /* Slight lift effect */
 }
 
-.primary-btn.loading {
-  opacity: 0.7;
+.primary-btn:active {
+  transform: translateY(0); /* Press effect */
+}
+
+.primary-btn:disabled {
+  background-color: #a0c9f1; /* Lighter blue when disabled */
   cursor: not-allowed;
+  transform: none; /* Remove hover/active effects when disabled */
 }
 
+/* Loading Spinner (hidden by default) */
 .spinner {
-  display: none;
-  margin-right: 8px;
-  border: 2px solid #fff;
-  border-top: 2px solid transparent;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #fff;
   border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  animation: spin 0.8s linear infinite;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: none; /* Hidden by default */
 }
 
 .primary-btn.loading .spinner {
-  display: inline-block;
+  display: block; /* Show spinner when loading */
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
+/* Message Box */
 .message-box {
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 14px;
+  margin-top: 20px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 0.95em;
   text-align: center;
-  margin-top: 10px;
+  font-weight: 500;
 }
 
 .message-box.success {
-  background-color: #e7f9ed;
-  color: #2d7a3e;
-  border: 1px solid #a8e6b4;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
 }
 
 .message-box.error {
-  background-color: #fdecea;
-  color: #b33a3a;
-  border: 1px solid #f5b4b0;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 
+/* Separator */
 .separator {
+  display: flex;
+  align-items: center;
   text-align: center;
-  margin: 20px 0;
-  position: relative;
+  margin: 30px 0; /* Spacing for the separator */
+  color: #bbb;
 }
 
 .separator::before,
 .separator::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 40%;
-  height: 1px;
-  background-color: #ddd;
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #eee; /* Lighter line */
 }
 
-.separator::before {
-  left: 0;
+.separator:not(:empty)::before {
+  margin-right: .25em;
 }
 
-.separator::after {
-  right: 0;
+.separator:not(:empty)::after {
+  margin-left: .25em;
 }
 
 .separator-text {
-  background-color: #fff;
   padding: 0 10px;
-  font-size: 13px;
-  color: #666;
+  background-color: #ffffff; /* Match card background */
+  font-size: 0.9em;
+  color: #999;
 }
 
+/* Google Auth Button */
 .google-auth-btn {
-  background-color: #ffffff;
-  border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 6px;
   width: 100%;
+  padding: 12px 20px;
+  background-color: #f0f0f0; /* Light gray background */
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 15px;
-  color: #444;
-  cursor: pointer;
-  transition: background 0.2s;
+  gap: 10px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
 }
 
 .google-auth-btn:hover {
-  background-color: #f2f2f2;
+  background-color: #e5e5e5;
+  border-color: #ccc;
+  transform: translateY(-2px);
+}
+
+.google-auth-btn:active {
+  transform: translateY(0);
+}
+
+.google-auth-btn:disabled {
+  background-color: #fafafa;
+  color: #aaa;
+  border-color: #eee;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .google-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px; /* Adjust size of Google icon */
+  height: 20px;
 }
 
+/* Create Account Prompt */
 .create-account-prompt {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #555;
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid #eee; /* Separator for this section */
 }
 
 .create-account-prompt p {
-  margin-bottom: 10px;
+  font-size: 0.95em;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.6;
 }
 
 .secondary-btn {
-  background-color: transparent;
-  color: #000000;
-  border: 1px solid #000000;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-size: 15px;
+  width: 100%;
+  padding: 12px 20px;
+  background-color: #f8f9fa; /* Light background for secondary action */
+  color: #007bff; /* Primary color text */
+  border: 1px solid #007bff; /* Primary color border */
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
 }
 
 .secondary-btn:hover {
-  background-color: #000000;
+  background-color: #007bff; /* Invert colors on hover */
   color: white;
+  transform: translateY(-2px);
 }
 
+.secondary-btn:active {
+  transform: translateY(0);
+}
+
+.secondary-btn:disabled {
+  background-color: #fafafa;
+  color: #a0c9f1;
+  border-color: #a0c9f1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Back to Home Link */
 .back-home-link {
-  text-align: center;
-  margin-top: 20px;
+  margin-top: 30px;
+  font-size: 0.9em;
+  color: #888;
 }
 
 .back-home-link a {
-  color: #999;
-  font-size: 14px;
+  color: #007bff;
   text-decoration: none;
-  transition: color 0.3s;
+  font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .back-home-link a:hover {
-  color: #000;
-}
-
-/* Make entire login view fit in viewport */
-body {
+  text-decoration: underline;
+  color: #0056b3;
+}/* Compact variations for no-scroll layout */
+.login-page-container.compact {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: #f8f9fa;
-  overflow: hidden;
+  justify-content: center;
+  padding: 10px;
+}
+
+.auth-card.compact {
+  max-width: 400px;
+  padding: 20px;
+  margin: 0;
+}
+
+.auth-header.compact {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.logo-placeholder.compact {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 10px;
+}
+
+.auth-title.compact {
+  font-size: 24px;
+  margin: 8px 0;
+}
+
+.auth-subtitle.compact {
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.form-group.compact {
+  margin-bottom: 15px;
+}
+
+.form-label.compact {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.form-input.compact {
+  height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.primary-btn.compact,
+.secondary-btn.compact,
+.google-auth-btn.compact {
+  height: 40px;
+  font-size: 14px;
+  padding: 0 16px;
+  margin: 8px 0;
+}
+
+.separator.compact {
+  margin: 15px 0;
+}
+
+.create-account-prompt.compact {
+  margin: 15px 0 10px;
+}
+
+.create-account-prompt.compact p {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.back-home-link.compact {
+  margin-top: 10px;
+}
+
+.message-box.compact {
+  padding: 8px 12px;
+  font-size: 13px;
+  margin: 10px 0;
+}
+
+.forgot-password-link.compact {
+  margin-top: 4px;
 }

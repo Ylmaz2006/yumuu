@@ -1,0 +1,279 @@
+/* ClipTune Video Upload Client Styles */
+
+.cliptune-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  padding: 20px;
+}
+
+.cliptune-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-width: 800px;
+  width: 100%;
+  margin: 20px;
+}
+
+.cliptune-title {
+  text-align: center;
+  color: #4c51bf;
+  margin-bottom: 30px;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.cliptune-upload-section {
+  border: 3px dashed #cbd5e0;
+  border-radius: 15px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.cliptune-upload-section:hover {
+  border-color: #4c51bf;
+  background-color: #f7fafc;
+}
+
+.cliptune-upload-section.dragover {
+  border-color: #4c51bf;
+  background-color: #ebf8ff;
+}
+
+.cliptune-upload-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: #a0aec0;
+}
+
+.cliptune-upload-text {
+  font-size: 1.2rem;
+  color: #4a5568;
+  margin-bottom: 20px;
+}
+
+.cliptune-file-input {
+  display: none;
+}
+
+.cliptune-upload-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.cliptune-upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.cliptune-form-group {
+  margin-bottom: 25px;
+}
+
+.cliptune-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.cliptune-input, .cliptune-textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.cliptune-input:focus, .cliptune-textarea:focus {
+  outline: none;
+  border-color: #4c51bf;
+  box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.1);
+}
+
+.cliptune-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.cliptune-process-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cliptune-process-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.6);
+}
+
+.cliptune-process-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cliptune-terminal {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 30px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.cliptune-terminal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cliptune-terminal::-webkit-scrollbar-track {
+  background: #4a5568;
+}
+
+.cliptune-terminal::-webkit-scrollbar-thumb {
+  background: #718096;
+  border-radius: 4px;
+}
+
+.cliptune-step {
+  margin-bottom: 10px;
+}
+
+.cliptune-step.error {
+  color: #f56565;
+}
+
+.cliptune-step.success {
+  color: #48bb78;
+}
+
+.cliptune-selected-file {
+  background: #ebf8ff;
+  border: 2px solid #4c51bf;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cliptune-file-icon {
+  font-size: 1.5rem;
+  color: #4c51bf;
+}
+
+.cliptune-file-info {
+  flex: 1;
+}
+
+.cliptune-file-name {
+  font-weight: 600;
+  color: #4c51bf;
+}
+
+.cliptune-file-size {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.cliptune-loading-spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4c51bf;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: cliptune-spin 1s linear infinite;
+  margin-left: 10px;
+}
+
+@keyframes cliptune-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cliptune-hidden {
+  display: none;
+}
+/* ClipTune Video Playback Section */
+.cliptune-video-playback-section {
+  margin-top: 30px;
+  text-align: center;
+  background: #f7fafc;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.cliptune-subtitle {
+  color: #4c51bf;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.cliptune-generated-video {
+  width: 100%;
+  max-width: 700px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  background-color: black; /* Ensures a black background for video player area */
+}
+
+.cliptune-video-preview-row {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.cliptune-video-thumbnail {
+  width: 120px; /* Adjust size as needed */
+  height: 80px; /* Adjust size as needed */
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.cliptune-video-thumbnail:hover {
+  transform: scale(1.05);
+  border-color: #4c51bf;
+  box-shadow: 0 4px 10px rgba(76, 81, 191, 0.2);
+}
