@@ -18,79 +18,133 @@ const SignupForm = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
+  const [showPremiumForm, setShowPremiumForm] = useState(false);
 
-  // Fetch a payment intent when the component loads
+  // Debug logging
+  console.log("SignupForm render - showPremiumForm:", showPremiumForm, "loading:", loading);
+
+  // Fetch a payment intent when premium form is shown
   useEffect(() => {
-    fetch("http://localhost:5000/create-payment-intent", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-    })
-        .then((res) => res.json())
-        .then((data) => setClientSecret(data.clientSecret))
-        .catch(() => {
-          setMessage("Failed to initialize payment form");
-          setStatus("error");
-        });
-  }, []);
+    if (showPremiumForm) {
+      console.log("Loading payment intent for premium form...");
+      setLoading(true);
+      setMessage("");
+      setStatus("");
+      
+      fetch("http://localhost:3001/create-payment-intent", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+      })
+          .then((res) => {
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then((data) => {
+            console.log("Payment intent created:", data.clientSecret ? "✅" : "❌");
+            setClientSecret(data.clientSecret);
+            setLoading(false);
+          })
+          .catch((error) => {
+            console.error("Payment intent error:", error);
+            setMessage("Failed to initialize payment form. Please try again.");
+            setStatus("error");
+            setLoading(false);
+          });
+    }
+  }, [showPremiumForm]);
 
   // --- UPDATED: Handles premium signup with payment ---
   const handlePremiumSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements || !clientSecret) {
-      setMessage("Payment form is not ready yet.");
+    
+    if (!email || !password) {
+      setMessage("Please enter email and password.");
+      setStatus("error");
+      return;
+    }
+    
+    if (!stripe || !elements) {
+      setMessage("Payment system is not ready yet. Please wait a moment and try again.");
+      setStatus("error");
+      return;
+    }
+    
+    // If clientSecret is not ready, try to wait a bit or show a different message
+    if (!clientSecret) {
+      setMessage("Payment is still initializing. Please wait a moment and try again.");
       setStatus("error");
       return;
     }
 
     setLoading(true);
     setMessage("");
+    setStatus("");
 
-    const cardElement = elements.getElement(CardElement);
+    try {
+      const cardElement = elements.getElement(CardElement);
+      
+      if (!cardElement) {
+        throw new Error("Card element not found");
+      }
 
-    // First, confirm the payment with Stripe
-    const result = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: cardElement,
-        billing_details: {email},
-      },
-    });
+      console.log("Confirming payment...");
 
-    if (result.error) {
-      setMessage(result.error.message);
-      setStatus("error");
-      setLoading(false);
-      return;
-    }
-
-    // If payment is successful, then create the user account as 'Premium'
-    if (result.paymentIntent.status === "succeeded") {
-      const signupRes = await fetch("http://localhost:5000/signup", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          email,
-          password,
-          paymentIntentId: result.paymentIntent.id, // Pass the ID to the backend
-        }),
+      // First, confirm the payment with Stripe
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            email: email,
+          },
+        },
       });
 
-      const data = await signupRes.json();
-      if (signupRes.ok) {
-        setMessage("Premium account created! Please check your email to verify.");
-        setStatus("success");
+      if (result.error) {
+        console.error("Payment error:", result.error);
+        setMessage(result.error.message || "Payment failed. Please try again.");
+        setStatus("error");
+        setLoading(false);
+        return;
+      }
+
+      // If payment is successful, then create the user account as 'Premium'
+      if (result.paymentIntent.status === "succeeded") {
+        console.log("Payment succeeded, creating account...");
+        
+        const signupRes = await fetch("http://localhost:3001/signup", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            email,
+            password,
+            paymentIntentId: result.paymentIntent.id, // Pass the ID to the backend
+          }),
+        });
+
+        const data = await signupRes.json();
+        if (signupRes.ok) {
+          setMessage("Premium account created successfully! Please check your email to verify.");
+          setStatus("success");
+        } else {
+          setMessage(data.message || "Account creation failed after payment.");
+          setStatus("error");
+        }
       } else {
-        setMessage(data.message || "Account creation failed after payment.");
+        setMessage(`Payment status: ${result.paymentIntent.status}. Please try again.`);
         setStatus("error");
       }
-    } else {
-      setMessage("Payment not completed.");
+    } catch (error) {
+      console.error("Premium signup error:", error);
+      setMessage("An error occurred during premium signup. Please try again.");
       setStatus("error");
     }
 
     setLoading(false);
   };
 
-  // --- NEW: Handles free signup without payment ---
+  // --- Handles free signup without payment ---
   const handleFreeSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
@@ -103,7 +157,7 @@ const SignupForm = () => {
     setMessage("");
 
     try {
-      const signupRes = await fetch("http://localhost:5000/signup", {
+      const signupRes = await fetch("http://localhost:3001/signup", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({email, password}), // No payment ID is sent
@@ -134,46 +188,184 @@ const SignupForm = () => {
           <p className="subtitle">Start creating AI-powered music for your videos</p>
         </div>
 
-        {/* The form now has a specific onSubmit for premium signup */}
-        <form onSubmit={handlePremiumSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="email">Email Address</label>
-            <input type="email" id="email" className="form-input" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={loading} />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">Create Password</label>
-            <input type="password" id="password" className="form-input" value={password} onChange={(e) => setPassword(e.target.value)} required disabled={loading} />
-          </div>
-
-          <div className="divider">Premium Plan - $10/month</div>
-
-          <ul className="features-list">
-            <li>Unlimited AI music generation & high-quality exports</li>
-            <li>Commercial license for YouTube & priority support</li>
-          </ul>
-
-          <div className="form-group">
-            <label className="form-label">Credit Card Details</label>
-            <div className="card-element-container">
-              <CardElement className="card-element" options={{disabled: loading}} />
+        {!showPremiumForm ? (
+          // Free Account Form (Default View)
+          <form onSubmit={handleFreeSubmit}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="email">Email Address</label>
+              <input 
+                type="email" 
+                id="email" 
+                className="form-input" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+                disabled={loading}
+                placeholder="Enter your email"
+              />
             </div>
-            <div className="security-badge">
-              <span>🔒 Secured by Stripe</span>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="password">Create Password</label>
+              <input 
+                type="password" 
+                id="password" 
+                className="form-input" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+                disabled={loading}
+                placeholder="Create a secure password"
+              />
             </div>
-          </div>
 
-          <button className={`submit-btn ${loading ? "loading" : ""}`} type="submit" disabled={loading || !stripe}>
-            {loading ? "Processing..." : "Start Premium Subscription - $10"}
-          </button>
+            <div className="divider">Free Plan - No Credit Card Required</div>
 
-          {/* New button for free signup */}
-          <button type="button" className="secondary-btn" onClick={handleFreeSubmit} disabled={loading}>
-            Skip and Create Free Account
-          </button>
+            <ul className="features-list">
+              <li>5 AI music generations per month</li>
+              <li>Standard quality audio exports</li>
+              <li>Personal use license</li>
+            </ul>
 
-          {message && <div className={`message ${status}`}>{message}</div>}
-        </form>
+            <button 
+              className={`submit-btn free-account-btn ${loading ? "loading" : ""}`} 
+              type="submit" 
+              disabled={loading}
+            >
+              <span className="loading-spinner"></span>
+              {loading ? "Creating Account..." : "Create Free Account"}
+            </button>
+
+            <div className="plan-options">
+              <div className="divider">Or upgrade to Premium</div>
+              
+              <button 
+                type="button" 
+                className="premium-upgrade-btn" 
+                onClick={() => {
+                  console.log("Premium button clicked - switching to premium form...");
+                  setShowPremiumForm(true);
+                  setMessage("");
+                  setStatus("");
+                }}
+                disabled={loading}
+              >
+                Upgrade to Premium - $10/month
+              </button>
+            </div>
+
+            {message && <div className={`message ${status}`}>{message}</div>}
+          </form>
+        ) : (
+          // Premium Account Form - Compact Layout
+          <form onSubmit={handlePremiumSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div className="form-group" style={{ marginBottom: '0' }}>
+                <label className="form-label" htmlFor="email">Email Address</label>
+                <input 
+                  type="email" 
+                  id="email" 
+                  className="form-input" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                  disabled={loading}
+                  style={{ padding: '12px' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '0' }}>
+                <label className="form-label" htmlFor="password">Create Password</label>
+                <input 
+                  type="password" 
+                  id="password" 
+                  className="form-input" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  disabled={loading}
+                  style={{ padding: '12px' }}
+                />
+              </div>
+            </div>
+
+            <div className="divider" style={{ margin: '12px 0' }}>Premium Plan - $10/month</div>
+
+            <ul className="features-list" style={{ margin: '12px 0', padding: '12px', fontSize: '12px' }}>
+              <li style={{ marginBottom: '6px' }}>Unlimited AI music generation & high-quality exports</li>
+              <li style={{ marginBottom: '6px' }}>Commercial license for YouTube & priority support</li>
+              <li style={{ marginBottom: '6px' }}>Advanced fade algorithms & custom timing</li>
+              <li style={{ marginBottom: '0' }}>Priority processing & faster generation</li>
+            </ul>
+
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label className="form-label">Credit Card Details</label>
+              {!clientSecret ? (
+                <div className="card-loading" style={{ padding: '8px' }}>
+                  <div className="loading-message">Initializing payment...</div>
+                </div>
+              ) : (
+                <>
+                  <div className="card-element-container" style={{ padding: '8px' }}>
+                    <CardElement 
+                      className="card-element" 
+                      options={{
+                        disabled: loading,
+                        style: {
+                          base: {
+                            fontSize: '14px',
+                            color: '#ffffff',
+                            '::placeholder': {
+                              color: '#a1a1aa',
+                            },
+                          },
+                          invalid: {
+                            color: '#dc2626',
+                          },
+                        }
+                      }} 
+                    />
+                  </div>
+                  <div className="security-badge" style={{ marginTop: '4px' }}>
+                    <span>🔒 Secured by Stripe</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button 
+              className={`submit-btn ${loading ? "loading" : ""}`} 
+              type="submit" 
+              disabled={loading || !stripe || !email || !password}
+              style={{ width: '100%', marginBottom: '10px', padding: '14px 20px' }}
+            >
+              <span className="loading-spinner"></span>
+              {loading ? "Processing Payment..." : 
+               !stripe ? "Loading Payment System..." : 
+               !email || !password ? "Enter Email & Password" :
+               !clientSecret ? "Initializing Payment..." : 
+               "Start Premium Subscription - $10"}
+            </button>
+
+            <button 
+              type="button" 
+              className="secondary-btn" 
+              onClick={() => {
+                console.log("Switching back to free form...");
+                setShowPremiumForm(false);
+                setClientSecret("");
+                setMessage("");
+                setStatus("");
+              }}
+              disabled={loading}
+              style={{ width: '100%', padding: '12px 20px', marginTop: '0' }}
+            >
+              ← Back to Free Account
+            </button>
+
+            {message && <div className={`message ${status}`} style={{ marginTop: '8px' }}>{message}</div>}
+          </form>
+        )}
 
         <div className="back-link">
           <a href="#" onClick={() => navigate("/login")}>← Already have an account? Sign In</a>
