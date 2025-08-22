@@ -8865,7 +8865,7 @@ onClick={() => {
     
     // 🚨 NEW: Call processVideoWithClipTune with explicit parameters
     // This ensures the function has the correct values regardless of state timing
-    processVideoWithClipTuneFixed(messageText);
+    processVideoWithClipTune(messageText);
     
   } else {
     // Normal mode - existing logic
