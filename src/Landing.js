@@ -57,7 +57,9 @@ const Landing = () => {
 
         {/* Additional Info */}
         <div className="additional-info">
-          <p>No credit card required • Generate unlimited tracks • Export in multiple formats</p>
+          <p>No credit card required • Generate unlimited tracks • Export in multiple formats
+            For Business inquiries, contact us at this email:drademademogullari@gmail.com
+          </p>
         </div>
       </div>
     </div>
