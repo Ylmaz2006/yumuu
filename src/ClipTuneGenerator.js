@@ -1830,7 +1830,7 @@ const generateMusicForSegment = async (segment, segmentIndex) => {
     formData.append('video_end', segmentEnd.toString());
 
     // 🚨 NEW: Add webhook URL for monitoring
-    const webhookUrl = "https://webhook.site/5421b69a-6732-41cb-a96f-b19ae1d7faf0";
+    const webhookUrl = "https://webhook.site/a54d685c-b636-4641-a883-edd74a6b7981";
     formData.append('webhook_url', webhookUrl);
 
     logToTerminal(`📤 Sending music generation request with webhook monitoring for "${trackName}"...`, 'info');
