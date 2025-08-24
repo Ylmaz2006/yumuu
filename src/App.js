@@ -70,7 +70,7 @@ function Login() {
 
         setTimeout(() => {
           if (data.isNewUser) {
-            navigate('/checkout');
+            navigate('/settings');
           } else {
             navigate('/settings'); // Or '/interface' if settings isn't a required stop
           }
@@ -100,63 +100,7 @@ function Login() {
           <p className="auth-subtitle compact">Sign in to your SoundAI account</p>
         </div>
 
-        <form className="auth-form compact" onSubmit={handleLogin}>
-          <div className="form-group compact">
-            <label htmlFor="email" className="form-label compact">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="your@email.com"
-              className="form-input compact"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="form-group compact">
-            <label htmlFor="password" className="form-label compact">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter your password"
-              className="form-input compact"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={loading}
-            />
-            <div className="forgot-password-link compact">
-              <a href="#" onClick={e => { e.preventDefault(); handleForgotPassword(); }}>
-                Forgot password?
-              </a>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className={`primary-btn compact ${loading ? 'loading' : ''}`}
-            disabled={loading}
-          >
-            {/* The spinner will be managed by CSS, hidden by default */}
-            <div className="spinner"></div>
-            {loading ? 'Signing In...' : 'Sign In'}
-          </button>
-
-          {message.text && (
-            <div className={`message-box compact ${message.type}`}>
-              {message.text}
-            </div>
-          )}
-        </form>
-
-        <div className="separator compact">
-          <span className="separator-text">OR</span>
-        </div>
-
+  
         <button
           type="button"
           onClick={handleGoogleLogin}

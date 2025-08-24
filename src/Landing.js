@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import "./LandingPage.css";
+import "./LandingPage.css"
 import { useNavigate } from "react-router-dom";
-
 const Landing = () => {
   const navigate = useNavigate();
   const [animateLogo, setAnimateLogo] = useState(false);
-
-  const handleLogin = () => navigate("/login");
-  const handleSignup = () => navigate("/signup");
+ const handleLogin = () => navigate("/login");
+  const handleStart = () => {
+    // Navigate to login or main app
+    console.log("Starting ClipTuner AI...");
+  };
 
   const handleLogoClick = () => {
     setAnimateLogo(true);
@@ -17,33 +18,46 @@ const Landing = () => {
   return (
     <div className="landing-container">
       <div className="content-wrapper">
+        
+        {/* Logo Section */}
         <div className="logo" onClick={handleLogoClick}>
-          <div className={`logo-circle ${animateLogo ? "logo-bounce" : ""}`}>
-            <div className="logo-inner">🎵</div>
+          <div className={`logo-circle ${animateLogo ? 'logo-bounce' : ''}`}>
+            <div className="logo-inner">
+              <svg 
+                className="logo-inner svg" 
+                fill="currentColor" 
+                viewBox="0 0 20 20"
+              >
+                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+              </svg>
+            </div>
           </div>
         </div>
 
-        <h1 className="headline">SoundAI</h1>
-        <p className="subheadline">AI-generated soundtracks for your YouTube videos</p>
+        {/* Main Title */}
+        <h1 className="headline">
+          <span className="cliptuner-text">ClipTuner</span>
+          <span className="ai-text">AI</span>
+        </h1>
 
-        <div className="features-grid compact">
-          <div className="feature-item">
-            <div className="feature-icon">🎬</div>
-            <div className="feature-title">YouTube Ready</div>
-          </div>
-          <div className="feature-item">
-            <div className="feature-icon">⚡</div>
-            <div className="feature-title">Fast Generation</div>
-          </div>
-          <div className="feature-item">
-            <div className="feature-icon">🎨</div>
-            <div className="feature-title">Style Matching</div>
-          </div>
-        </div>
+        {/* Subtitle */}
+        <p className="subheadline">
+          Generate music for your video selection by its content
+        </p>
 
+        {/* CTA Button */}
         <div className="button-group">
-          <button className="btn btn-primary" onClick={handleLogin}>Start</button>
-          <button className="btn btn-secondary" onClick={handleSignup}>Demo</button>
+          <button 
+            onClick={handleLogin}
+            className="btn btn-primary"
+          >
+            Start Creating
+          </button>
+        </div>
+
+        {/* Additional Info */}
+        <div className="additional-info">
+          <p>No credit card required • Generate unlimited tracks • Export in multiple formats</p>
         </div>
       </div>
     </div>

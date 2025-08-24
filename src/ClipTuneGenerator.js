@@ -9523,96 +9523,88 @@ onClick={() => {
     onMouseUp={(e) => e.stopPropagation()}
   >
     {/* 🚨 NEW: Volume Update Loading Overlay */}
-    {volumeUpdateProgress[index]?.isUpdating && (
+{volumeUpdateProgress[index]?.isUpdating && (
+  <div style={{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(30, 41, 59, 0.95)',
+    backdropFilter: 'blur(4px)',
+    borderRadius: '0.25rem',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+    gap: '0.5rem'
+  }}>
+    {/* Circular Progress Indicator */}
+    <div style={{
+      position: 'relative',
+      width: '40px',
+      height: '40px',
+      transform: 'rotate(-90deg)'
+    }}>
+      {/* Background Circle */}
+      <svg width="40" height="40" style={{ position: 'absolute' }}>
+        <circle
+          cx="20"
+          cy="20"
+          r="16"
+          stroke="rgba(255, 255, 255, 0.1)"
+          strokeWidth="2.5"
+          fill="transparent"
+        />
+      </svg>
+      
+      {/* Progress Circle */}
+      <svg width="40" height="40" style={{ position: 'absolute' }}>
+        <circle
+          cx="20"
+          cy="20"
+          r="16"
+          stroke="#3b82f6"
+          strokeWidth="2.5"
+          fill="transparent"
+          strokeDasharray={`${2 * Math.PI * 16}`}
+          strokeDashoffset={`${2 * Math.PI * 16 * (1 - (volumeUpdateProgress[index]?.progress || 0) / 100)}`}
+          strokeLinecap="round"
+          style={{
+            transition: 'stroke-dashoffset 0.3s ease',
+            filter: 'drop-shadow(0 0 4px rgba(59, 130, 246, 0.6))'
+          }}
+        />
+      </svg>
+      
+      {/* Percentage Text */}
       <div style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(30, 41, 59, 0.95)',
-        backdropFilter: 'blur(4px)',
-        borderRadius: '0.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 20,
-        gap: '0.75rem'
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%) rotate(90deg)',
+        fontSize: '0.6rem',
+        fontWeight: 'bold',
+        color: 'white',
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
       }}>
-        {/* Circular Progress Indicator */}
-        <div style={{
-          position: 'relative',
-          width: '50px',
-          height: '50px',
-          transform: 'rotate(-90deg)'
-        }}>
-          {/* Background Circle */}
-          <svg width="50" height="50" style={{ position: 'absolute' }}>
-            <circle
-              cx="25"
-              cy="25"
-              r="20"
-              stroke="rgba(255, 255, 255, 0.1)"
-              strokeWidth="3"
-              fill="transparent"
-            />
-          </svg>
-          
-          {/* Progress Circle */}
-          <svg width="50" height="50" style={{ position: 'absolute' }}>
-            <circle
-              cx="25"
-              cy="25"
-              r="20"
-              stroke="#3b82f6"
-              strokeWidth="3"
-              fill="transparent"
-              strokeDasharray={`${2 * Math.PI * 20}`}
-              strokeDashoffset={`${2 * Math.PI * 20 * (1 - (volumeUpdateProgress[index]?.progress || 0) / 100)}`}
-              strokeLinecap="round"
-              style={{
-                transition: 'stroke-dashoffset 0.3s ease',
-                filter: 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.6))'
-              }}
-            />
-          </svg>
-          
-          {/* Percentage Text */}
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%) rotate(90deg)',
-            fontSize: '0.7rem',
-            fontWeight: 'bold',
-            color: 'white',
-            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)'
-          }}>
-            {Math.round(volumeUpdateProgress[index]?.progress || 0)}%
-          </div>
-        </div>
-
-        {/* Status Text */}
-        <div style={{
-          color: 'white',
-          fontSize: '0.8rem',
-          fontWeight: 500,
-          textAlign: 'center',
-          lineHeight: '1.2'
-        }}>
-          🎚️ Updating Volume to {volumeUpdateProgress[index]?.targetVolume}%
-          <div style={{
-            fontSize: '0.7rem',
-            color: 'rgba(255, 255, 255, 0.7)',
-            marginTop: '0.25rem'
-          }}>
-            Regenerating video with new audio levels...
-          </div>
-        </div>
+        {Math.round(volumeUpdateProgress[index]?.progress || 0)}%
       </div>
-    )}
+    </div>
 
+    {/* Status Text - Moved down and simplified */}
+    <div style={{
+      color: 'white',
+      fontSize: '0.75rem',
+      fontWeight: 500,
+      textAlign: 'center',
+      lineHeight: '1.2'
+    }}>
+      🎚️ Updating Volume to {volumeUpdateProgress[index]?.targetVolume}%
+    </div>
+  </div>
+)}
     {/* Original Volume Control Content */}
     <div style={{
       display: 'flex',

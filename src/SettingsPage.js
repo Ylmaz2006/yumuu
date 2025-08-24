@@ -211,22 +211,13 @@ function SettingsPage() {
             {/* Section for Premium users to manage their subscription */}
             {accountType === "Premium" && !isLoading && (
               <section className="settings-section premium-section">
-                <h2>🎉 Premium Subscription</h2>
-                <p>You are currently on the <strong>Premium</strong> plan!</p>
+          
                 <div className="premium-status">
-                  <p>✅ Unlimited music generation</p>
-                  <p>✅ Commercial licensing included</p>
-                  <p>✅ Priority support</p>
-                  <p>✅ Advanced editing features</p>
-                  <p>✅ Extended storage</p>
+   
+                  <p>Press Create Button to start to create music for your videos</p>
+            
                 </div>
-                <button 
-                  className={`cancel-btn ${cancelLoading ? 'loading' : ''}`}
-                  onClick={handleCancelPremium}
-                  disabled={cancelLoading}
-                >
-                  {cancelLoading ? "Canceling..." : "Cancel Subscription"}
-                </button>
+       
               </section>
             )}
           </>
@@ -279,7 +270,7 @@ function SettingsPage() {
       <header className="top-nav">
         <div className="nav-buttons">
           <button className="nav-btn" onClick={handleCreateClick}>Create ✨</button>
-          <button className="nav-btn active" onClick={handleSettingsClick}>Settings ⚙️</button>
+       
           <button className="nav-btn" onClick={handleLibraryClick}>Library 📚</button>
         </div>
         <div className="user-info">
@@ -297,10 +288,7 @@ function SettingsPage() {
 
       <main className="settings-content">
         <div className="settings-header">
-          <h1 className="settings-main-title">Account Settings</h1>
-          <div className={`account-badge ${accountType?.toLowerCase()}`}>
-            {isLoading ? "Loading..." : `${accountType} Account`}
-          </div>
+
         </div>
 
         {/* Error Display */}
@@ -318,26 +306,6 @@ function SettingsPage() {
         )}
 
         {/* Settings Tabs - Simplified */}
-        <div className="settings-tabs">
-          <button 
-            className={`tab-btn ${activeTab === "subscription" ? "active" : ""}`}
-            onClick={() => setActiveTab("subscription")}
-          >
-            💎 Profile & Subscription
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === "payments" ? "active" : ""}`}
-            onClick={() => setActiveTab("payments")}
-          >
-            💳 Payment Methods
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === "security" ? "active" : ""}`}
-            onClick={() => setActiveTab("security")}
-          >
-            🔒 Security & Privacy
-          </button>
-        </div>
 
         {/* Tab Content */}
         <div className="tab-content">
